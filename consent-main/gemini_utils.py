@@ -105,7 +105,6 @@ def get_gemini_response_from_combined_content(combined_content, user_profile=Non
     
     **마무리:**
     - 설명이 끝난 후, 환자분에게 **"혹시 제가 설명드린 부분 중에 궁금한 점이나 더 알고 싶은 부분이 있으실까요?"** 와 같은 질문을 넣어 이해도를 확인해주세요.
-    - 밑에 문제를 풀면서 한번 더 확인하는 시간을 가져보도록 유도해주세요.
 
     ---
     **[로봇수술동의서 내용]:**
