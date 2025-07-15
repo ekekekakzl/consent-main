@@ -1,0 +1,99 @@
+/* Streamlit 앱의 전체 기본 글꼴 크기 설정 */
+html, body, .stApp {
+    font-size: 20px; /* 기본 글꼴 크기를 18px로 설정 */
+}
+
+/* Streamlit 기본 버튼 스타일 오버라이드 */
+.stButton>button {
+    background-color: #9df1a0; /* 버튼 배경색 (예: 초록색) */
+    color: rgb(0, 0, 0); /* 버튼 글자색 */
+    border: none; /* 테두리 없음 */
+    padding: 10px 20px; /* 패딩 */
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    font-size: 20px;
+    margin: 4px 2px;
+    cursor: pointer;
+    border-radius: 8px; /* 둥근 모서리 */
+    transition: background-color 0.3s ease; /* 호버 효과 */
+}
+
+/* 버튼 호버 시 색상 변경 */
+.stButton>button:hover {
+    background-color: #45a049; /* 호버 시 약간 더 진한 초록색 */
+}
+
+/* 입력 필드 (text_input, number_input) 배경 및 글자색 변경 */
+div.stTextInput > div > div > input,
+div.stNumberInput > div > div > input {
+    background-color: #e0f2f7; /* 밝은 하늘색 배경 */
+    color: #2c3e50; /* 진한 회색 글자색 */
+    border: 1px solid #a7d9ed; /* 테두리 색상 */
+    border-radius: 5px; /* 둥근 모서리 */
+    padding: 15px;
+    font-size: 18px
+}
+
+/* 텍스트 영역 (text_area) 배경 및 글자색 변경 */
+div.stTextArea > div > textarea {
+    background-color: #e0f2f7; /* 밝은 하늘색 배경 */
+    color: #2c3e50; /* 진한 회색 글자색 */
+    border: 1px solid #a7d9ed; /* 테두리 색상 */
+    border-radius: 5px; /* 둥근 모서리 */
+    padding: 15px;
+    font-size: 18px;
+}
+
+/* Selectbox (드롭다운) 배경 및 글자색 변경 - 더 복잡할 수 있음 */
+div.stSelectbox > div[data-baseweb="select"] > div,
+div.stSelectbox > div[data-baseweb="select"] > div > div {
+    background-color: #e0f2f7 !important; /* 배경색 */
+    color: #2c3e50 !important; /* 글자색 */
+    border: 1px solid #a7d9ed !important; /* 테두리 */
+    border-radius: 5px !important;
+}
+/* 드롭다운 메뉴 아이템 */
+div[data-baseweb="popover"] > div > ul > li {
+    background-color: #e0f2f7 !important;
+    color: #2c3e50 !important;
+}
+div[data-baseweb="popover"] > div > ul > li:hover {
+    background-color: #d1edfa !important; /* 호버 색상 */
+}
+
+/* 프로그레스 바 텍스트 색상 (스피너 내부 텍스트) */
+.stSpinner > div > span {
+    color: #3498db !important; /* 파란색 */
+}
+/* Streamlit 헤더 (H1, H2 등) 글꼴 크기 조정 (선택 사항) */
+/*
+h1 { font-size: 2.5em !important; }
+h2 { font-size: 2em !important; }
+h3 { font-size: 1.75em !important; }
+*/
+
+/* 채팅 메시지 배경색 변경 */
+/* 사용자 메시지 */
+.st-chat-message-container.st-chat-message-user {
+    background-color: #e6f7ff; /* 밝은 파란색 */
+    border-radius: 10px;
+    padding: 10px;
+    margin-bottom: 10px;
+}
+
+/* 어시스턴트 메시지 */
+.st-chat-message-container.st-chat-message-assistant {
+    background-color: #f0f2f5; /* 아주 밝은 회색 */
+    border-radius: 10px;
+    padding: 10px;
+    margin-bottom: 10px;
+}
+
+/* 채팅 입력 필드 */
+.st-chat-input {
+    background-color: #ff00dd; /* 흰색 배경 */
+    border-radius: 10px;
+    padding: 5px;
+    border: 1px solid #ddd;
+}
