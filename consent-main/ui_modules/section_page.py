@@ -9,28 +9,15 @@ def clear_user_question_input(key):
 def render_section_page(section_idx, title, description, section_key):
     st.session_state.current_section = section_idx
 
+    # 메인 섹션 제목에 커스텀 클래스 적용
     st.markdown(f"""
-    <div id="section-top-{section_key}" style='display:flex; align-items:center; font-size:1.5rem; font-weight:bold; margin-bottom:8px; gap:8px;'>
+    <div class='main-section-title-container'>
         <span>📄</span> {title}
     </div>
     <div style='color:#666; font-size:1rem; margin-bottom:24px;'>
         {description}
     </div>
     """, unsafe_allow_html=True)
-
-    st.markdown(
-        f"""
-        <script>
-            var element = document.getElementById("section-top-{section_key}");
-            if (element) {{
-                setTimeout(function() {{
-                    element.scrollIntoView({{ behavior: 'instant', block: 'start' }});
-                }}, 50);
-            }}
-        </script>
-        """,
-        unsafe_allow_html=True
-    )
 
     user_diagnosis = st.session_state.user_profile.get('diagnosis')
     
@@ -66,8 +53,7 @@ def render_section_page(section_idx, title, description, section_key):
             if not st.session_state.current_gemini_explanation or \
                st.session_state.get('last_loaded_section_key') != section_key:
                 
-                # 섹션별 채팅 기록 초기화는 이제 최종 채팅 페이지에서 관리됩니다.
-                # st.session_state.chat_history = []
+                st.session_state.chat_history = [] # 섹션 전환 시 채팅 기록 초기화
                 st.session_state.current_quiz_idx = 0
                 st.session_state.show_quiz = False
 
@@ -86,6 +72,37 @@ def render_section_page(section_idx, title, description, section_key):
                 
 
     st.markdown(f"<div style='background-color:#f9f9f9; padding:20px; border-radius:10px; border:1px solid #eee;'>{st.session_state.current_gemini_explanation}</div>", unsafe_allow_html=True)
+
+    st.markdown("---")
+
+    # 섹션별 채팅 인터페이스 추가 (AI 설명 바로 아래)
+    st.subheader("혹시 제가 설명드린 부분 중에 궁금한 점이나 더 알고 싶은 부분이 있으실까요?")
+    
+    # 채팅 기록 표시
+    for message in st.session_state.chat_history:
+        with st.chat_message(message["role"]):
+            st.markdown(message["content"])
+
+    # st.chat_input 대신 st.text_input과 st.button 사용
+    user_query = st.text_input("궁금한 점을 입력하세요:", key=f"chat_text_input_{section_key}")
+    send_button = st.button("전송", key=f"chat_send_button_{section_key}")
+
+    if send_button and user_query:
+        st.session_state.chat_history.append({"role": "user", "content": user_query})
+        
+        with st.spinner("답변 생성 중..."):
+            try:
+                response_text = get_gemini_chat_response(
+                    st.session_state.chat_history[:-1],
+                    user_query,
+                    initial_explanation=st.session_state.current_gemini_explanation
+                )
+                st.session_state.chat_history.append({"role": "assistant", "content": response_text})
+            except Exception as e:
+                st.error(f"Gemini API 호출 중 오류 발생: {e}")
+                st.session_state.chat_history.append({"role": "assistant", "content": "죄송합니다. 답변을 생성하는 데 문제가 발생했습니다."})
+        
+        st.rerun()
 
     st.markdown("---")
 
@@ -124,7 +141,7 @@ def render_section_page(section_idx, title, description, section_key):
                         st.session_state.current_quiz_idx += 1
                         st.rerun()
                 else:
-                    st.info("이 섹션의 모든 퀴즈를 완료했습니다! �")
+                    st.info("이 섹션의 모든 퀴즈를 완료했습니다! 🎉")
                     if st.button("계속 진행하기", key=f"finish_quiz_button_{section_key}"):
                         st.session_state.show_quiz = False
                         st.session_state.current_quiz_idx = 0
@@ -176,7 +193,6 @@ def render_section_page(section_idx, title, description, section_key):
                 st.session_state.current_quiz_idx = 0
                 st.session_state.current_gemini_explanation = ""
                 st.session_state.last_loaded_section_key = None
-                # FAQ 답변 상태 초기화
                 st.session_state.current_faq_answer = ""
                 st.rerun()
         else:
@@ -187,7 +203,6 @@ def render_section_page(section_idx, title, description, section_key):
                 st.session_state.current_quiz_idx = 0
                 st.session_state.current_gemini_explanation = ""
                 st.session_state.last_loaded_section_key = None
-                # FAQ 답변 상태 초기화
                 st.session_state.current_faq_answer = ""
                 st.rerun()
 
@@ -201,18 +216,16 @@ def render_section_page(section_idx, title, description, section_key):
                 st.session_state.current_quiz_idx = 0
                 st.session_state.current_gemini_explanation = ""
                 st.session_state.last_loaded_section_key = None
-                # FAQ 답변 상태 초기화
                 st.session_state.current_faq_answer = ""
                 st.rerun()
         elif current_page_key_index == len(SECTIONS_ORDER_KEYS) - 1:
             if st.button("설명 완료", key=f"finish_sections", use_container_width=True):
-                st.success("모든 동의서 설명 섹션을 완료했습니다! 이제 궁금한 점이 있다면 아래 채팅창에 물어보세요.")
+                st.success("모든 동의서 설명을 완료했습니다! 이제 궁금한 점을 물어보세요.")
                 st.session_state.current_page = "final_chat" # 최종 채팅 페이지로 이동
                 st.session_state.show_quiz = False
                 st.session_state.current_quiz_idx = 0
                 st.session_state.current_gemini_explanation = ""
                 st.session_state.last_loaded_section_key = None
-                # FAQ 답변 상태 초기화
                 st.session_state.current_faq_answer = ""
                 st.rerun()
 
