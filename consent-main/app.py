@@ -125,26 +125,46 @@ def render_final_chat_page():
         st.session_state.current_page = "main"
         st.session_state.chat_history = [] # 최종 채팅 기록 초기화
         st.rerun()
-        # 페이지 변경 후 맨 위로 스크롤 (render_final_chat_page의 끝)
-        st.markdown("""
-            <script>
-                const performScroll = () => {
-                    window.scrollTo({ top: 0, behavior: 'instant' });
-                    document.body.scrollTop = 0;
-                    document.documentElement.scrollTop = 0;
-                    const appViewContainer = document.querySelector('[data-testid="stAppViewContainer"]');
-                    if (appViewContainer) { appViewContainer.scrollTop = 0; }
-                    const mainElement = document.querySelector('main');
-                    if (mainElement) { mainElement.scrollTop = 0; }
-                };
-                setTimeout(performScroll, 50); setTimeout(performScroll, 150); setTimeout(performScroll, 300);
-                setTimeout(performScroll, 500); setTimeout(performScroll, 800); setTimeout(performScroll, 1200);
-            </script>
-        """, unsafe_allow_html=True)
 
 
 # --- Main App Logic ---
 def main():
+    # --- 페이지 렌더링 시 맨 위로 스크롤하는 강력한 JavaScript 코드 ---
+    # 이 코드는 앱이 다시 렌더링될 때마다 실행되어 스크롤 위치를 맨 위로 강제합니다.
+    # 가능한 모든 스크롤 가능한 요소를 대상으로 시도하여 안정성을 극대화합니다.
+    st.markdown(
+        """
+        <script>
+            function forceScrollToTopAggressively() {
+                // 1. window (최상위 브라우저 창) 스크롤
+                window.scrollTo({ top: 0, behavior: 'instant' });
+                
+                // 2. document.body 및 document.documentElement (HTML 요소) 스크롤
+                document.body.scrollTop = 0; // For Safari
+                document.documentElement.scrollTop = 0; // For Chrome, Firefox, IE and Opera
+
+                // 3. Streamlit의 메인 앱 뷰 컨테이너 스크롤
+                const appViewContainer = document.querySelector('[data-testid="stAppViewContainer"]');
+                if (appViewContainer) {
+                    appViewContainer.scrollTop = 0;
+                }
+
+                // 4. Streamlit의 'main' 요소 스크롤 (주요 콘텐츠 영역)
+                const mainElement = document.querySelector('main');
+                if (mainElement) {
+                    mainElement.scrollTop = 0;
+                }
+            }
+            
+            // 페이지 로드 및 업데이트 시 단일 호출로 안정성 확보
+            // Streamlit의 렌더링 완료를 기다리기 위해 충분한 지연 시간을 줍니다.
+            setTimeout(forceScrollToTopAggressively, 200); /* 200ms 지연 후 스크롤 시도 */
+            setTimeout(forceScrollToTopAggressively, 500); /* 추가적인 안전 장치 */
+        </script>
+        """,
+        unsafe_allow_html=True
+    )
+
     if not st.session_state["logged_in"]:
         render_login_page()
         return
@@ -158,22 +178,6 @@ def main():
         st.session_state.current_gemini_explanation = ""
         st.session_state.last_loaded_section_key = None
         st.rerun()
-        # 페이지 변경 후 맨 위로 스크롤 (버튼 클릭 후)
-        st.markdown("""
-            <script>
-                const performScroll = () => {
-                    window.scrollTo({ top: 0, behavior: 'instant' });
-                    document.body.scrollTop = 0;
-                    document.documentElement.scrollTop = 0;
-                    const appViewContainer = document.querySelector('[data-testid="stAppViewContainer"]');
-                    if (appViewContainer) { appViewContainer.scrollTop = 0; }
-                    const mainElement = document.querySelector('main');
-                    if (mainElement) { mainElement.scrollTop = 0; }
-                };
-                setTimeout(performScroll, 50); setTimeout(performScroll, 150); setTimeout(performScroll, 300);
-                setTimeout(performScroll, 500); setTimeout(performScroll, 800); setTimeout(performScroll, 1200);
-            </script>
-        """, unsafe_allow_html=True)
         
 
     if st.session_state.profile_setup_completed:
@@ -216,22 +220,6 @@ def main():
                 )
             ):
                 st.rerun()
-                # 페이지 변경 후 맨 위로 스크롤 (버튼 클릭 후)
-                st.markdown("""
-                    <script>
-                        const performScroll = () => {
-                            window.scrollTo({ top: 0, behavior: 'instant' });
-                            document.body.scrollTop = 0;
-                            document.documentElement.scrollTop = 0;
-                            const appViewContainer = document.querySelector('[data-testid="stAppViewContainer"]');
-                            if (appViewContainer) { appViewContainer.scrollTop = 0; }
-                            const mainElement = document.querySelector('main');
-                            if (mainElement) { mainElement.scrollTop = 0; }
-                        };
-                        setTimeout(performScroll, 50); setTimeout(performScroll, 150); setTimeout(performScroll, 300);
-                        setTimeout(performScroll, 500); setTimeout(performScroll, 800); setTimeout(performScroll, 1200);
-                    </script>
-                """, unsafe_allow_html=True)
     else:
         st.sidebar.info("환자 정보 입력이 완료되면 동의서 설명 항목이 활성화됩니다.")
 
@@ -242,25 +230,9 @@ def main():
         st.session_state["logged_in"] = False
         st.session_state.clear()
         st.rerun()
-        # 페이지 변경 후 맨 위로 스크롤 (버튼 클릭 후)
-        st.markdown("""
-            <script>
-                const performScroll = () => {
-                    window.scrollTo({ top: 0, behavior: 'instant' });
-                    document.body.scrollTop = 0;
-                    document.documentElement.scrollTop = 0;
-                    const appViewContainer = document.querySelector('[data-testid="stAppViewContainer"]');
-                    if (appViewContainer) { appViewContainer.scrollTop = 0; }
-                    const mainElement = document.querySelector('main');
-                    if (mainElement) { mainElement.scrollTop = 0; }
-                };
-                setTimeout(performScroll, 50); setTimeout(performScroll, 150); setTimeout(performScroll, 300);
-                setTimeout(performScroll, 500); setTimeout(performScroll, 800); setTimeout(performScroll, 1200);
-            </script>
-        """, unsafe_allow_html=True)
 
     if st.session_state.excel_data_dict is None:
-        st.title("🚨 오류: 엑셀 파일 로드 실패 �")
+        st.title("🚨 오류: 엑셀 파일 로드 실패 🚨")
         st.error("애플리케이션을 시작하는 데 필요한 엑셀 동의서 파일을 찾거나 읽을 수 없습니다.")
         st.info(f"'{EXCEL_FILE_PATH}' 경로에 파일이 올바르게 위치해 있는지 확인하고, 파일 형식이 올바른지 확인해주세요.")
         return
