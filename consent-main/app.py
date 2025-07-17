@@ -8,7 +8,7 @@ from config import (
     SECTIONS_SIDEBAR_MAP, SECTIONS_ORDER_KEYS
 )
 from data_loader import load_excel_data
-from gemini_utils import configure_gemini, get_gemini_chat_response
+from gemini_utils import configure_gemini
 from ui_modules.login_page import render_login_page
 from ui_modules.profile_setup_page import render_profile_setup
 from ui_modules.section_page import (
@@ -20,8 +20,10 @@ from ui_modules.section_page import (
 st.set_page_config(layout="wide")
 
 # --- 커스텀 CSS 로드 및 적용 ---
+# style/styles.css 파일의 경로를 정확히 지정
 css_file_path = os.path.join(os.path.dirname(__file__), "style", "styles.css")
 if os.path.exists(css_file_path):
+    # 파일을 읽을 때 인코딩을 'utf-8'로 명시합니다.
     with open(css_file_path, 'r', encoding='utf-8') as f:
         st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
 else:
@@ -77,22 +79,19 @@ if 'excel_data_dict' not in st.session_state:
     st.session_state.excel_data_dict = load_excel_data(EXCEL_FILE_PATH)
 
 
-# 최종 채팅 페이지 함수
+# 최종 채팅 페이지 함수 (변경 없음)
 def render_final_chat_page():
-    # st.title("궁금한 점을 물어보세요! 💬") 대신 커스텀 마크다운 사용
     st.markdown("<h1 class='final-chat-title'>궁금한 점을 물어보세요! 💬</h1>", unsafe_allow_html=True)
     st.info("모든 동의서 설명을 완료했습니다. 궁금한 점이 있다면 무엇이든 물어보세요.")
 
-    # 채팅 기록 표시
     for message in st.session_state.chat_history:
         with st.chat_message(message["role"]):
             st.markdown(message["content"])
 
-    # st.chat_input 대신 st.text_input과 st.button 사용
     user_query = st.text_input("궁금한 점을 입력하세요:", key="final_chat_text_input")
     send_button = st.button("전송", key="final_chat_send_button")
 
-    if send_button and user_query: # 버튼 클릭 및 입력 내용이 있을 때
+    if send_button and user_query:
         st.session_state.chat_history.append({"role": "user", "content": user_query})
         
         with st.spinner("답변 생성 중..."):
@@ -107,7 +106,6 @@ def render_final_chat_page():
                 st.error(f"Gemini API 호출 중 오류 발생: {e}")
                 st.session_state.chat_history.append({"role": "assistant", "content": "죄송합니다. 답변을 생성하는 데 문제가 발생했습니다."})
         
-        # 새로운 메시지 추가 후 맨 아래로 스크롤 (이 페이지에서만)
         st.markdown(
             """
             <script>
@@ -118,53 +116,17 @@ def render_final_chat_page():
             """,
             unsafe_allow_html=True
         )
-        st.rerun() # 입력 필드 초기화 및 변경 사항 반영
+        st.rerun()
     
     st.markdown("---")
     if st.button("메인 페이지로 돌아가기", key="back_to_main_from_final_chat"):
         st.session_state.current_page = "main"
-        st.session_state.chat_history = [] # 최종 채팅 기록 초기화
+        st.session_state.chat_history = []
         st.rerun()
 
 
 # --- Main App Logic ---
 def main():
-    # --- 페이지 렌더링 시 맨 위로 스크롤하는 강력한 JavaScript 코드 ---
-    # 이 코드는 앱이 다시 렌더링될 때마다 실행되어 스크롤 위치를 맨 위로 강제합니다.
-    # 가능한 모든 스크롤 가능한 요소를 대상으로 시도하여 안정성을 극대화합니다.
-    st.markdown(
-        """
-        <script>
-            function forceScrollToTopAggressively() {
-                // 1. window (최상위 브라우저 창) 스크롤
-                window.scrollTo({ top: 0, behavior: 'instant' });
-                
-                // 2. document.body 및 document.documentElement (HTML 요소) 스크롤
-                document.body.scrollTop = 0; // For Safari
-                document.documentElement.scrollTop = 0; // For Chrome, Firefox, IE and Opera
-
-                // 3. Streamlit의 메인 앱 뷰 컨테이너 스크롤
-                const appViewContainer = document.querySelector('[data-testid="stAppViewContainer"]');
-                if (appViewContainer) {
-                    appViewContainer.scrollTop = 0;
-                }
-
-                // 4. Streamlit의 'main' 요소 스크롤 (주요 콘텐츠 영역)
-                const mainElement = document.querySelector('main');
-                if (mainElement) {
-                    mainElement.scrollTop = 0;
-                }
-            }
-            
-            // 페이지 로드 및 업데이트 시 단일 호출로 안정성 확보
-            // Streamlit의 렌더링 완료를 기다리기 위해 충분한 지연 시간을 줍니다.
-            setTimeout(forceScrollToTopAggressively, 200); /* 200ms 지연 후 스크롤 시도 */
-            setTimeout(forceScrollToTopAggressively, 500); /* 추가적인 안전 장치 */
-        </script>
-        """,
-        unsafe_allow_html=True
-    )
-
     if not st.session_state["logged_in"]:
         render_login_page()
         return
@@ -172,6 +134,7 @@ def main():
     # 사이드바 제목 (st.sidebar.title 대신 커스텀 마크다운 사용)
     st.sidebar.markdown("<h2 class='sidebar-menu-title'>메뉴</h2>", unsafe_allow_html=True)
     
+    # '환자 정보 입력' 버튼
     if st.sidebar.button("👤 환자 정보 입력", key="profile_input_button"):
         st.session_state.current_page = "profile_setup"
         st.session_state.current_section = 1
