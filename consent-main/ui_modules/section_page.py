@@ -1,15 +1,26 @@
 import streamlit as st
-from gemini_utils import get_gemini_chat_response, get_gemini_response_from_combined_content
+from gemini_utils import get_gemini_chat_response, get_gemini_response_from_combined_content, synthesize_speech
+import base64
+import re
 from config import QUIZ_DATA, FAQ_DATA, SECTIONS_SIDEBAR_MAP, SECTIONS_ORDER_KEYS, HARDCODED_BASE_EXPLANATIONS
 
-# JavaScript 문자열을 안전하게 이스케이프하는 헬퍼 함수 (section_page.py에 추가)
-def _js_escape_string(s):
-    # JavaScript 템플릿 리터럴에 사용될 때 백틱, 백슬래시, 개행 문자를 이스케이프
-    s = s.replace('\\', '\\\\')  # 백슬래시 먼저 이스케이프
-    s = s.replace('`', '\\`')    # 백틱 이스케이프
-    s = s.replace('\n', '\\n')   # 개행 문자 이스케이프
-    s = s.replace('\r', '\\r')   # 캐리지 리턴 이스케이프
-    return s
+def _play_text_as_audio_callback(text_to_speak):
+    cleaned_text = re.sub(r'[^\w\s.,?!가-힣a-zA-Z0-9]', ' ', text_to_speak)
+    cleaned_text = re.sub(r'\s+', ' ', cleaned_text).strip()
+
+    audio_bytes = synthesize_speech(cleaned_text)
+    if audio_bytes:
+        base64_audio = base64.b64encode(audio_bytes).decode('utf-8')
+        audio_html = f"""
+        <audio controls autoplay style="width: 100%; margin-top: 10px;">
+            <source src="data:audio/mp3;base64,{base64_audio}" type="audio/mp3">
+            Your browser does not support the audio element.
+        </audio>
+        """
+        st.session_state.current_audio_html = audio_html
+    else:
+        st.error("음성 생성에 실패했습니다. 인터넷 연결을 확인하거나 잠시 후 다시 시도해주세요.")
+        st.session_state.current_audio_html = ""
 
 def clear_user_question_input(key):
     st.session_state[key] = ""
@@ -35,6 +46,7 @@ def render_section_navigation_buttons(section_idx, parent_column):
                     st.session_state.current_gemini_explanation = ""
                     st.session_state.last_loaded_section_key = None
                     st.session_state.current_faq_answer = ""
+                    st.session_state.current_audio_html = ""
                     st.rerun()
             else:
                 if st.button("환자 정보로 돌아가기", key=f"back_to_profile_{section_idx}", use_container_width=True):
@@ -46,6 +58,7 @@ def render_section_navigation_buttons(section_idx, parent_column):
                     st.session_state.current_gemini_explanation = ""
                     st.session_state.last_loaded_section_key = None
                     st.session_state.current_faq_answer = ""
+                    st.session_state.current_audio_html = ""
                     st.rerun()
 
         with nav_cols[1]:
@@ -58,6 +71,7 @@ def render_section_navigation_buttons(section_idx, parent_column):
                     st.session_state.current_gemini_explanation = ""
                     st.session_state.last_loaded_section_key = None
                     st.session_state.current_faq_answer = ""
+                    st.session_state.current_audio_html = ""
                     st.rerun()
             elif current_page_key_index == len(SECTIONS_ORDER_KEYS) - 1:
                 if st.button("설명 완료", key=f"finish_sections", use_container_width=True):
@@ -68,6 +82,7 @@ def render_section_navigation_buttons(section_idx, parent_column):
                     st.session_state.current_gemini_explanation = ""
                     st.session_state.last_loaded_section_key = None
                     st.session_state.current_faq_answer = ""
+                    st.session_state.current_audio_html = ""
                     st.rerun()
 
 
@@ -81,6 +96,7 @@ def render_section_page(section_idx, title, description, section_key):
         st.info("메인 페이지로 돌아가 프로필을 다시 설정하거나 관리자에게 문의해주세요.")
         st.session_state.current_gemini_explanation = "" 
         st.session_state.last_loaded_section_key = None
+        st.session_state.current_audio_html = ""
         if st.button("프로필 재설정", key="reset_profile_missing_diagnosis_footer"):
             st.session_state.profile_setup_completed = False
             st.session_state.current_page = "profile_setup"
@@ -93,6 +109,7 @@ def render_section_page(section_idx, title, description, section_key):
         st.session_state.chat_history = []
         st.session_state.current_quiz_idx = 0
         st.session_state.show_quiz = False
+        st.session_state.current_audio_html = ""
 
         with st.spinner(f"AI가 {user_diagnosis}에 대한 {title}을(를) 설명하고 있습니다..."):
             gemini_explanation = get_gemini_response_from_combined_content(
@@ -109,8 +126,7 @@ def render_section_page(section_idx, title, description, section_key):
     col_left, col_right = st.columns([0.5, 0.5], gap="large") 
 
     with col_left: 
-        # 제목과 재생 버튼을 위한 새로운 컬럼 레이아웃 (비율 조정)
-        title_col, play_col, pause_col, stop_col = st.columns([0.4, 0.2, 0.2, 0.2]) # 비율 조정
+        title_col, play_col = st.columns([0.8, 0.2])
         with title_col:
             st.markdown(f"""
             <div style='display:flex; align-items:center; font-size:1.5rem; font-weight:bold; margin-bottom:8px; gap:8px;'>
@@ -118,14 +134,8 @@ def render_section_page(section_idx, title, description, section_key):
             </div>
             """, unsafe_allow_html=True)
         with play_col:
-            st.button("음성으로 듣기 ▶️", key=f"play_section_explanation_{section_key}", use_container_width=True,
-                      on_click=lambda exp=st.session_state.current_gemini_explanation: st.markdown(f"<script>speakText(`{_js_escape_string(exp)}`)</script>", unsafe_allow_html=True))
-        with pause_col:
-            st.button("잠시 멈추기 ⏸️", key=f"pause_section_explanation_{section_key}", use_container_width=True,
-                      on_click=lambda: st.markdown("<script>pauseSpeaking()</script>", unsafe_allow_html=True))
-        with stop_col:
-            st.button("그만 듣기 ⏹️", key=f"stop_section_explanation_{section_key}", use_container_width=True,
-                      on_click=lambda: st.markdown("<script>stopSpeaking()</script>", unsafe_allow_html=True))
+            st.button("음성 재생 ▶️", key=f"play_section_explanation_{section_key}", use_container_width=True,
+                      on_click=_play_text_as_audio_callback, args=(st.session_state.current_gemini_explanation,))
 
         st.markdown(f"""
         <div style='color:#666; font-size:1rem; margin-bottom:24px;'>
@@ -142,17 +152,8 @@ def render_section_page(section_idx, title, description, section_key):
             with st.chat_message(message["role"]):
                 st.markdown(message["content"])
                 if message["role"] == "assistant":
-                    # AI 응답 옆에 재생/일시정지/정지 버튼 추가 (비율 조정)
-                    col_play_chat, col_pause_chat, col_stop_chat = st.columns([0.33, 0.33, 0.34]) # 비율 조정
-                    with col_play_chat:
-                        st.button("음성으로 듣기 ▶️", key=f"play_chat_section_{section_key}_{i}", use_container_width=True,
-                                  on_click=lambda msg=message["content"]: st.markdown(f"<script>speakText(`{_js_escape_string(msg)}`)</script>", unsafe_allow_html=True))
-                    with col_pause_chat:
-                        st.button("잠시 멈추기 ⏸️", key=f"pause_chat_section_{section_key}_{i}", use_container_width=True,
-                                  on_click=lambda: st.markdown("<script>pauseSpeaking()</script>", unsafe_allow_html=True))
-                    with col_stop_chat:
-                        st.button("그만 듣기 ⏹️", key=f"stop_chat_section_{section_key}_{i}", use_container_width=True,
-                                  on_click=lambda: st.markdown("<script>stopSpeaking()</script>", unsafe_allow_html=True))
+                    st.button("음성 재생 ▶️", key=f"play_chat_section_{section_key}_{i}", use_container_width=True,
+                              on_click=_play_text_as_audio_callback, args=(message["content"],))
 
 
         user_query = st.text_input("궁금한 점을 입력하세요:", key=f"chat_text_input_{section_key}")
@@ -161,6 +162,7 @@ def render_section_page(section_idx, title, description, section_key):
         if send_button and user_query:
             st.session_state.chat_history.append({"role": "user", "content": user_query})
             st.session_state[f"chat_text_input_{section_key}"] = ""
+            st.session_state.current_audio_html = ""
             
             with st.spinner("답변 생성 중..."):
                 try:
@@ -195,11 +197,13 @@ def render_section_page(section_idx, title, description, section_key):
                 with col_o:
                     if st.button("O", key=f"quiz_O_{section_key}_{st.session_state.current_quiz_idx}", use_container_width=True):
                         st.session_state.quiz_answers[quiz_answer_key] = "O"
+                        st.session_state.current_audio_html = ""
                         st.rerun()
                         
                 with col_x:
                     if st.button("X", key=f"quiz_X_{section_key}_{st.session_state.current_quiz_idx}", use_container_width=True):
                         st.session_state.quiz_answers[quiz_answer_key] = "X"
+                        st.session_state.current_audio_html = ""
                         st.rerun()
                         
                 if st.session_state.quiz_answers[quiz_answer_key] is not None:
@@ -211,18 +215,21 @@ def render_section_page(section_idx, title, description, section_key):
                     if st.session_state.current_quiz_idx < len(section_quizzes) - 1:
                         if st.button("다음 문제 풀기", key=f"next_quiz_button_{section_key}_{st.session_state.current_quiz_idx}"):
                             st.session_state.current_quiz_idx += 1
+                            st.session_state.current_audio_html = ""
                             st.rerun()
                     else:
                         st.info("이 섹션의 모든 퀴즈를 완료했습니다! 🎉")
                         if st.button("계속 진행하기", key=f"finish_quiz_button_{section_key}"):
                             st.session_state.show_quiz = False
                             st.session_state.current_quiz_idx = 0
+                            st.session_state.current_audio_html = ""
                             st.rerun()
                         
             else:
-                st.info("이 섹션의 모든 퀴즈를 이미 완료하셨습니다! 다음 단계로 넘어가거나 다른 섹션을 살펴보세요. 😊")
+                st.info("이 섹션의 모든 퀴즈를 이미 완료하셨습니다! 다음 단계로 넘어가거나 다른 섹션을 살펴보세요. �")
                 st.session_state.show_quiz = False
                 st.session_state.current_quiz_idx = 0
+                st.session_state.current_audio_html = ""
                 
         else:
             st.info("이 섹션에 대한 퀴즈가 아직 준비되지 않았습니다.")
@@ -236,25 +243,18 @@ def render_section_page(section_idx, title, description, section_key):
             for i, faq_item in enumerate(FAQ_DATA[section_key]):
                 if st.button(faq_item["question"], key=f"faq_q_{section_key}_{i}"):
                     st.session_state.current_faq_answer = faq_item["answer"]
+                    st.session_state.current_audio_html = ""
                     st.rerun()
         else:
             st.info("이 섹션에 대한 자주 묻는 질문이 아직 준비되지 않았습니다.")
 
         if st.session_state.current_faq_answer:
             st.markdown(f"<div style='background-color:#e6f7ff; padding:15px; border-radius:8px; border:1px solid #91d5ff; margin-top:15px;'><strong>답변:</strong> {st.session_state.current_faq_answer}</div>", unsafe_allow_html=True)
-            # FAQ 답변 재생/일시정지/정지 버튼 추가 (비율 조정)
-            col_play_faq, col_pause_faq, col_stop_faq = st.columns([0.33, 0.33, 0.34]) # 비율 조정
-            with col_play_faq:
-                st.button("음성으로 듣기 ▶️", key=f"play_faq_answer_{section_key}", use_container_width=True,
-                          on_click=lambda ans=st.session_state.current_faq_answer: st.markdown(f"<script>speakText(`{_js_escape_string(ans)}`)</script>", unsafe_allow_html=True))
-            with col_pause_faq:
-                st.button("잠시 멈추기 ⏸️", key=f"pause_faq_answer_{section_key}", use_container_width=True,
-                          on_click=lambda: st.markdown("<script>pauseSpeaking()</script>", unsafe_allow_html=True))
-            with col_stop_faq:
-                st.button("그만 듣기 ⏹️", key=f"stop_faq_answer_{section_key}", use_container_width=True,
-                          on_click=lambda: st.markdown("<script>stopSpeaking()</script>", unsafe_allow_html=True))
+            st.button("음성 재생 ▶️", key=f"play_faq_answer_{section_key}", use_container_width=True,
+                      on_click=_play_text_as_audio_callback, args=(st.session_state.current_faq_answer,))
             if st.button("답변 닫기", key=f"clear_faq_answer_{section_key}"):
                 st.session_state.current_faq_answer = ""
+                st.session_state.current_audio_html = ""
                 st.rerun()
 
         if st.session_state.current_gemini_explanation and \

@@ -1,6 +1,8 @@
 import google.generativeai as genai
-import streamlit as st
+import streamlit as st # Streamlit 임포트 추가 (캐싱 사용을 위함)
 from config import HARDCODED_BASE_EXPLANATIONS, SECTIONS_ORDER_KEYS # SECTIONS_ORDER_KEYS 임포트 추가
+from gtts import gTTS # gTTS 라이브러리 임포트
+import io # io 모듈 임포트
 
 _model = None
 
@@ -23,7 +25,7 @@ def get_gemini_chat_response(chat_history_list, current_user_message, initial_ex
     채팅 기록과 현재 사용자 메시지를 Gemini에 전송하여 응답을 받습니다.
     Args:
         chat_history_list (list): 이전 대화의 메시지 목록 (role, content 포함).
-                                 여기서는 Streamlit의 st.session_state.chat_history 형식을 따릅니다.
+                                  여기서는 Streamlit의 st.session_state.chat_history 형식을 따릅니다.
         current_user_message (str): 현재 사용자 메시지.
         initial_explanation (str): 현재 섹션의 초기 설명 (Gemini에게 컨텍스트로 제공).
         user_profile (dict, optional): 환자의 프로필 정보. 기본값은 None.
@@ -150,11 +152,11 @@ def get_gemini_response_from_combined_content(user_profile=None, current_section
     아래 제공된 [로봇수술동의서 내용]을 바탕으로 {diagnosis} 환자분께 {current_section_title}에 대해 설명해 주세요.
 
     **설명 지침:**
-    - 환자분이 이해할 수 있도록 설명해 주세요.
-    - 불안해하는 환자에게 따뜻하고 안심되는 말투로 설명해 주세요. 공감과 신뢰를 주는 문장을 넣어 주세요.
+    - 환자가 이해할 수 있도록 설명해 주세요.
+    - 불안해하는 환자에게 따뜻하고 안심되는 말투와와 공감과 신뢰를 주는 문장을 넣어 주세요.
     - 필요한 경우 간단한 예시나 비유를 사용해 주세요.
     - 설명 마지막에는 긍정적인 마무리 표현을 추가해 주세요.
-    - 설명이 끝난 후, 환자분에게 "혹시 제가 설명드린 부분 중에 궁금한 점이나 더 알고 싶은 부분이 있으실까요?" 와 같은 질문을 넣어 이해도를 확인하거나 생각을 유도해 주세요.
+    - 설명은 700자 내외로 작성해 주세요.
 
     ---
     **[로봇수술동의서 내용]:**
@@ -187,6 +189,8 @@ def get_overall_consent_summary(user_profile):
     patient_education = user_profile.get('education_level', '알 수 없음')
 
     # 모든 섹션 제목을 포함하여 프롬프트 구성
+    from config import HARDCODED_BASE_EXPLANATIONS, SECTIONS_ORDER_KEYS, SECTIONS_SIDEBAR_MAP
+    
     all_sections_titles = ", ".join([
         "수술 필요성", "수술 방법", "고려 사항", "부작용", "주의사항", "자기 결정권"
     ])
@@ -198,8 +202,8 @@ def get_overall_consent_summary(user_profile):
 
     **요약 지침:**
     - 모든 섹션의 핵심 내용을 통합하여 간결하고 명확하게 요약해 주세요.
-    - 환자분이 이해하기 쉽도록 친절하고 따뜻한 말투를 사용해 주세요.
-    - 환자분의 진단명('{patient_diagnosis}')과 수술명('{patient_surgery}')을 명확히 언급하며, 이 수술이 환자분께 왜 중요하고 어떤 과정을 거치며, 어떤 점을 주의해야 하는지 등을 포함해 주세요.
+    - 환자가 이해하기 쉽도록 친절하고 따뜻한 말투를 사용해 주세요.
+    - 환자의 진단명('{patient_diagnosis}')과 수술명('{patient_surgery}')을 명확히 언급하며, 이 수술이 환자에게게 왜 중요하고 어떤 과정을 거치며, 어떤 점을 주의해야 하는지 등을 포함해 주세요.
     - 긍정적이고 안심시키는 어조로 마무리해 주세요.
     - 요약은 약 200-300단어 내외로 작성해 주세요.
 
@@ -212,3 +216,19 @@ def get_overall_consent_summary(user_profile):
     except Exception as e:
         st.error(f"Gemini API 호출 중 오류 발생: {e}")
         return "죄송합니다. AI 모델이 전체 요약을 생성하는 데 문제가 발생했습니다. 잠시 후 다시 시도해주세요."
+
+# 텍스트를 음성으로 변환하여 MP3 바이트 스트림을 반환하는 함수
+@st.cache_data(show_spinner=False) # 캐싱 데코레이터 추가
+def synthesize_speech(text: str) -> bytes:
+    try:
+        tts = gTTS(text=text, lang='ko')
+        fp = io.BytesIO()
+        tts.write_to_fp(fp)
+        fp.seek(0)
+        return fp.read()
+    except Exception as e:
+        # Streamlit UI에 오류 메시지 표시
+        st.error(f"음성 합성 중 오류 발생: {e}. 인터넷 연결을 확인하거나 잠시 후 다시 시도해주세요.")
+        # 서버 로그에도 오류 출력
+        print(f"음성 합성 중 오류 발생: {e}")
+        return b"" # 오류 발생 시 빈 바이트 반환

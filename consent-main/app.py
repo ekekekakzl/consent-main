@@ -1,12 +1,15 @@
 import streamlit as st
 import os
 import json
+import base64
+import time
+import re
 
 from config import (
     USERNAME, PASSWORD,
     SECTIONS_SIDEBAR_MAP, SECTIONS_ORDER_KEYS
 )
-from gemini_utils import configure_gemini, get_gemini_chat_response, get_gemini_response_from_combined_content, get_overall_consent_summary
+from gemini_utils import configure_gemini, get_gemini_chat_response, get_gemini_response_from_combined_content, get_overall_consent_summary, synthesize_speech
 from ui_modules.login_page import render_login_page
 from ui_modules.profile_setup_page import render_profile_setup
 from ui_modules.section_page import (
@@ -73,113 +76,26 @@ if 'final_chat_text_input_value' not in st.session_state:
 if 'overall_summary_content' not in st.session_state:
     st.session_state.overall_summary_content = ""
 
-# JavaScript 문자열을 안전하게 이스케이프하는 헬퍼 함수
-def _js_escape_string(s):
-    # JavaScript 템플릿 리터럴에 사용될 때 백틱, 백슬래시, 개행 문자를 이스케이프
-    s = s.replace('\\', '\\\\')  # 백슬래시 먼저 이스케이프
-    s = s.replace('`', '\\`')    # 백틱 이스케이프
-    s = s.replace('\n', '\\n')   # 개행 문자 이스케이프
-    s = s.replace('\r', '\\r')   # 캐리지 리턴 이스케이프
-    return s
+if 'current_audio_html' not in st.session_state:
+    st.session_state.current_audio_html = ""
 
-# JavaScript 함수를 Streamlit 앱에 주입 (재생/일시정지/정지 기능 포함)
-st.markdown(f"""
-<script>
-    let currentUtterance = null; // 현재 재생 중인 SpeechSynthesisUtterance 객체
-    let isSpeaking = false;
-    let isPaused = false;
+def _play_text_as_audio_callback(text_to_speak):
+    cleaned_text = re.sub(r'[^\w\s.,?!가-힣a-zA-Z0-9]', ' ', text_to_speak)
+    cleaned_text = re.sub(r'\s+', ' ', cleaned_text).strip()
 
-    // Function to log available voices (useful for debugging)
-    function logVoices() {{
-        const voices = window.speechSynthesis.getVoices();
-        if (voices.length === 0) {{
-            console.warn('No speech synthesis voices available.');
-        }} else {{
-            console.log('Available voices:', voices.map(v => `${{v.name}} (${{v.lang}})`));
-            // Check if a Korean voice is available
-            const koreanVoice = voices.find(voice => voice.lang === 'ko-KR');
-            if (!koreanVoice) {{
-                console.warn('No Korean (ko-KR) voice found. Speech might default to another language or fail.');
-            }}
-        }}
-    }}
-
-    // Listen for voiceschanged event to log voices once they are loaded
-    if ('speechSynthesis' in window) {{
-        window.speechSynthesis.onvoiceschanged = logVoices;
-        // If voices are already loaded, log them immediately
-        if (window.speechSynthesis.getVoices().length > 0) {{
-            logVoices();
-        }}
-    }}
-
-    function speakText(text) {{
-        console.log("speakText called with text:", text.substring(0, 50) + "..."); // Log first 50 chars of text
-        if ('speechSynthesis' in window) {{
-            // 현재 재생 중인 음성이 있다면 중지
-            if (currentUtterance && isSpeaking) {{
-                window.speechSynthesis.cancel();
-            }}
-
-            currentUtterance = new SpeechSynthesisUtterance(text);
-            currentUtterance.lang = 'ko-KR'; // 한국어 설정
-
-            // Try to set a specific Korean voice if available
-            const voices = window.speechSynthesis.getVoices();
-            const koreanVoice = voices.find(voice => voice.lang === 'ko-KR');
-            if (koreanVoice) {{
-                currentUtterance.voice = koreanVoice;
-                console.log("Using Korean voice:", koreanVoice.name);
-            }} else {{
-                console.warn("No specific ko-KR voice found, using default for language.");
-            }}
-
-            currentUtterance.rate = 1.0; // 말하기 속도 (기본값 1.0)
-            currentUtterance.pitch = 1.0; // 음높이 (기본값 1.0)
-
-            currentUtterance.onstart = () => {{ isSpeaking = true; isPaused = false; console.log("Speech started"); }};
-            currentUtterance.onend = () => {{ isSpeaking = false; isPaused = false; console.log("Speech ended"); }};
-            currentUtterance.onerror = (event) => {{
-                isSpeaking = false;
-                isPaused = false;
-                console.error("Speech error:", event.error); // Log specific error type
-                console.error("Utterance:", currentUtterance);
-            }};
-
-            window.speechSynthesis.speak(currentUtterance);
-        }} else {{
-            console.warn('이 브라우저는 음성 합성을 지원하지 않습니다.');
-        }}
-    }}
-
-    function pauseSpeaking() {{
-        if ('speechSynthesis' in window && window.speechSynthesis.speaking && !window.speechSynthesis.paused) {{
-            window.speechSynthesis.pause();
-            isPaused = true;
-            console.log("Speech paused");
-        }}
-    }}
-
-    function resumeSpeaking() {{
-        if ('speechSynthesis' in window && window.speechSynthesis.paused) {{
-            window.speechSynthesis.resume();
-            isPaused = false;
-            console.log("Speech resumed");
-        }}
-    }}
-
-    function stopSpeaking() {{
-        if ('speechSynthesis' in window && window.speechSynthesis.speaking || window.speechSynthesis.paused) {{
-            window.speechSynthesis.cancel();
-            currentUtterance = null;
-            isSpeaking = false;
-            isPaused = false;
-            console.log("Speech stopped");
-        }}
-    }}
-</script>
-""", unsafe_allow_html=True)
-
+    audio_bytes = synthesize_speech(cleaned_text)
+    if audio_bytes:
+        base64_audio = base64.b64encode(audio_bytes).decode('utf-8')
+        audio_html = f"""
+        <audio controls autoplay style="width: 100%; margin-top: 10px;">
+            <source src="data:audio/mp3;base64,{base64_audio}" type="audio/mp3">
+            Your browser does not support the audio element.
+        </audio>
+        """
+        st.session_state.current_audio_html = audio_html
+    else:
+        st.error("음성 생성에 실패했습니다. 인터넷 연결을 확인하거나 잠시 후 다시 시도해주세요.")
+        st.session_state.current_audio_html = ""
 
 def render_final_chat_page():
     st.markdown("<h1 class='final-chat-title'>모든 설명을 완료했습니다! 🎉</h1>", unsafe_allow_html=True)
@@ -194,19 +110,8 @@ def render_final_chat_page():
             with st.chat_message(message["role"]):
                 st.markdown(message["content"])
                 if message["role"] == "assistant":
-                    col_play, col_pause, col_stop = st.columns([0.1, 0.1, 0.1])
-                    # AI 응답 옆에 재생/일시정지/정지 버튼 추가
-                    with col_play:
-                        # _js_escape_string 함수를 사용하여 텍스트 이스케이프
-                        st.button("음성 재생 ▶️", key=f"play_final_chat_{i}", 
-                                  on_click=lambda msg=message["content"]: st.markdown(f"<script>speakText(`{_js_escape_string(msg)}`)</script>", unsafe_allow_html=True))
-                    with col_pause:
-                        st.button("일시정지 ⏸️", key=f"pause_final_chat_{i}", 
-                                  on_click=lambda: st.markdown("<script>pauseSpeaking()</script>", unsafe_allow_html=True))
-                    with col_stop:
-                        st.button("멈춤 ⏹️", key=f"stop_final_chat_{i}", 
-                                  on_click=lambda: st.markdown("<script>stopSpeaking()</script>", unsafe_allow_html=True))
-
+                    st.button("음성 재생 ▶️", key=f"play_final_chat_{i}", use_container_width=True,
+                              on_click=_play_text_as_audio_callback, args=(message["content"],))
 
     user_query = st.text_input(
         "궁금한 점을 입력해주세요.",
@@ -241,13 +146,13 @@ def render_final_chat_page():
             st.session_state.current_section = 0
             st.session_state.current_gemini_explanation = ""
             st.session_state.last_loaded_section_key = None
-            st.session_state.show_quiz = False
-            st.session_state.current_quiz_idx = 0
             st.session_state.current_faq_answer = ""
+            st.session_state.current_audio_html = ""
             st.rerun()
     with col_summarize:
         if st.button("전체 동의서 요약하기", key="summarize_consent_button_from_final_chat", use_container_width=True):
             st.session_state.current_page = "final_summary"
+            st.session_state.current_audio_html = ""
             st.rerun()
 
 
@@ -264,17 +169,8 @@ def render_final_summary_page():
 
     if st.session_state.overall_summary_content:
         st.markdown(st.session_state.overall_summary_content)
-        col_play_summary, col_pause_summary, col_stop_summary = st.columns([0.1, 0.1, 0.1])
-        with col_play_summary:
-            # _js_escape_string 함수를 사용하여 텍스트 이스케이프
-            st.button("음성 재생 ▶️", key="play_summary_content",
-                      on_click=lambda summary=st.session_state.overall_summary_content: st.markdown(f"<script>speakText(`{_js_escape_string(summary)}`)</script>", unsafe_allow_html=True))
-        with col_pause_summary:
-            st.button("일시정지 ⏸️", key="pause_summary_content",
-                      on_click=lambda: st.markdown("<script>pauseSpeaking()</script>", unsafe_allow_html=True))
-        with col_stop_summary:
-            st.button("멈춤 ⏹️", key="stop_summary_content",
-                      on_click=lambda: st.markdown("<script>stopSpeaking()</script>", unsafe_allow_html=True))
+        st.button("음성 재생 ▶️", key="play_summary_content", use_container_width=True,
+                  on_click=_play_text_as_audio_callback, args=(st.session_state.overall_summary_content,))
     else:
         st.warning("요약 내용을 불러오거나 생성하는 데 문제가 발생했습니다.")
 
@@ -290,6 +186,7 @@ def render_final_summary_page():
             st.session_state.current_quiz_idx = 0
             st.session_state.current_faq_answer = ""
             st.session_state.overall_summary_content = ""
+            st.session_state.current_audio_html = ""
             st.rerun()
     with col_re_enter_profile:
         if st.button("환자 정보 다시 입력하기", key="re_enter_profile_from_summary", use_container_width=True):
@@ -305,6 +202,7 @@ def render_final_summary_page():
             st.session_state.current_quiz_idx = 0
             st.session_state.current_faq_answer = ""
             st.session_state.overall_summary_content = ""
+            st.session_state.current_audio_html = ""
             st.rerun()
 
 
@@ -324,6 +222,7 @@ def main():
         st.session_state.show_quiz = False
         st.session_state.current_quiz_idx = 0
         st.session_state.current_faq_answer = ""
+        st.session_state.current_audio_html = ""
         st.rerun()
 
     if st.session_state.profile_setup_completed:
@@ -353,7 +252,8 @@ def main():
                     setattr(st.session_state, 'current_quiz_idx', 0),
                     setattr(st.session_state, 'current_gemini_explanation', ""),
                     setattr(st.session_state, 'last_loaded_section_key', None),
-                    setattr(st.session_state, 'current_faq_answer', "")
+                    setattr(st.session_state, 'current_faq_answer', ""),
+                    setattr(st.session_state, 'current_audio_html', "")
                 )
             ):
                 st.rerun()
@@ -403,6 +303,10 @@ def main():
             render_final_summary_page()
         else:
             render_final_chat_page()
+
+    if st.session_state.current_audio_html:
+        st.markdown(st.session_state.current_audio_html, unsafe_allow_html=True)
+
 
 if __name__ == "__main__":
     main()
