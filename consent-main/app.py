@@ -89,7 +89,32 @@ st.markdown(f"""
     let isSpeaking = false;
     let isPaused = false;
 
+    // Function to log available voices (useful for debugging)
+    function logVoices() {{
+        const voices = window.speechSynthesis.getVoices();
+        if (voices.length === 0) {{
+            console.warn('No speech synthesis voices available.');
+        }} else {{
+            console.log('Available voices:', voices.map(v => `${{v.name}} (${{v.lang}})`));
+            // Check if a Korean voice is available
+            const koreanVoice = voices.find(voice => voice.lang === 'ko-KR');
+            if (!koreanVoice) {{
+                console.warn('No Korean (ko-KR) voice found. Speech might default to another language or fail.');
+            }}
+        }}
+    }}
+
+    // Listen for voiceschanged event to log voices once they are loaded
+    if ('speechSynthesis' in window) {{
+        window.speechSynthesis.onvoiceschanged = logVoices;
+        // If voices are already loaded, log them immediately
+        if (window.speechSynthesis.getVoices().length > 0) {{
+            logVoices();
+        }}
+    }}
+
     function speakText(text) {{
+        console.log("speakText called with text:", text.substring(0, 50) + "..."); // Log first 50 chars of text
         if ('speechSynthesis' in window) {{
             // 현재 재생 중인 음성이 있다면 중지
             if (currentUtterance && isSpeaking) {{
@@ -98,12 +123,28 @@ st.markdown(f"""
 
             currentUtterance = new SpeechSynthesisUtterance(text);
             currentUtterance.lang = 'ko-KR'; // 한국어 설정
+
+            // Try to set a specific Korean voice if available
+            const voices = window.speechSynthesis.getVoices();
+            const koreanVoice = voices.find(voice => voice.lang === 'ko-KR');
+            if (koreanVoice) {{
+                currentUtterance.voice = koreanVoice;
+                console.log("Using Korean voice:", koreanVoice.name);
+            }} else {{
+                console.warn("No specific ko-KR voice found, using default for language.");
+            }}
+
             currentUtterance.rate = 1.0; // 말하기 속도 (기본값 1.0)
             currentUtterance.pitch = 1.0; // 음높이 (기본값 1.0)
 
             currentUtterance.onstart = () => {{ isSpeaking = true; isPaused = false; console.log("Speech started"); }};
             currentUtterance.onend = () => {{ isSpeaking = false; isPaused = false; console.log("Speech ended"); }};
-            currentUtterance.onerror = (event) => {{ isSpeaking = false; isPaused = false; console.error("Speech error:", event); }};
+            currentUtterance.onerror = (event) => {{
+                isSpeaking = false;
+                isPaused = false;
+                console.error("Speech error:", event.error); // Log specific error type
+                console.error("Utterance:", currentUtterance);
+            }};
 
             window.speechSynthesis.speak(currentUtterance);
         }} else {{
@@ -226,13 +267,13 @@ def render_final_summary_page():
         col_play_summary, col_pause_summary, col_stop_summary = st.columns([0.1, 0.1, 0.1])
         with col_play_summary:
             # _js_escape_string 함수를 사용하여 텍스트 이스케이프
-            st.button("▶️", key="play_summary_content",
+            st.button("음성 재생 ▶️", key="play_summary_content",
                       on_click=lambda summary=st.session_state.overall_summary_content: st.markdown(f"<script>speakText(`{_js_escape_string(summary)}`)</script>", unsafe_allow_html=True))
         with col_pause_summary:
-            st.button("⏸️", key="pause_summary_content",
+            st.button("일시정지 ⏸️", key="pause_summary_content",
                       on_click=lambda: st.markdown("<script>pauseSpeaking()</script>", unsafe_allow_html=True))
         with col_stop_summary:
-            st.button("⏹️", key="stop_summary_content",
+            st.button("멈춤 ⏹️", key="stop_summary_content",
                       on_click=lambda: st.markdown("<script>stopSpeaking()</script>", unsafe_allow_html=True))
     else:
         st.warning("요약 내용을 불러오거나 생성하는 데 문제가 발생했습니다.")
