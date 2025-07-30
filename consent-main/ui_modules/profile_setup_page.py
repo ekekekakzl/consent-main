@@ -32,7 +32,7 @@ def render_profile_setup():
         col3, col4 = st.columns(2)
 
         with col3:
-            diagnosis_options = ["선택하세요", "자궁경부암", "난소암", "자궁내막암", "자궁근종"]
+            diagnosis_options = ["선택하세요", "자궁경부암", "난소암", "자궁내막암"]
             current_diagnosis_value = st.session_state.user_profile.get('diagnosis')
             if current_diagnosis_value in diagnosis_options:
                 current_diagnosis_index = diagnosis_options.index(current_diagnosis_value)
@@ -42,8 +42,8 @@ def render_profile_setup():
             diagnosis = st.selectbox("진단명 *", diagnosis_options, index=current_diagnosis_index)
         
         with col4:
-            all_surgery_options = ["선택하세요", "로봇 자궁절제술", "로봇 난소절제술", "로봇 근종절제술", "기타"]
-            display_surgery_options = ["선택하세요", "로봇 자궁절제술", "로봇 난소절제술", "로봇 근종절제술", "기타"]
+            all_surgery_options = ["선택하세요", "로봇 자궁절제술", "로봇 난소절제술", "기타"]
+            display_surgery_options = ["선택하세요", "로봇 자궁절제술", "로봇 난소절제술", "기타"]
             
             current_surgery_value = st.session_state.user_profile.get('surgery', "선택하세요")
             if current_surgery_value in all_surgery_options:

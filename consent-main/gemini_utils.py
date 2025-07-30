@@ -80,8 +80,7 @@ def get_gemini_chat_response(chat_history_list, current_user_message, initial_ex
 
 def get_gemini_response_from_combined_content(user_profile=None, current_section_title="현재 섹션"):
     """
-    하드코딩된 기본 설명을 바탕으로 Gemini AI로부터 개인화된 설명을 생성합니다.
-    하드코딩된 설명이 없을 경우, 설명이 없음을 알립니다.
+    하드코딩된 기본 설명으로 Gemini AI로부터 개인화된 설명을 생성합니다.
     또한, 공통 설명이 있는 경우 이를 참조하여 가져옵니다.
     """
     if _model is None:
@@ -152,11 +151,9 @@ def get_gemini_response_from_combined_content(user_profile=None, current_section
     아래 제공된 [로봇수술동의서 내용]을 바탕으로 {diagnosis} 환자분께 {current_section_title}에 대해 설명해 주세요.
 
     **설명 지침:**
-    - 환자가 이해할 수 있도록 설명해 주세요.
     - 불안해하는 환자에게 따뜻하고 안심되는 말투와와 공감과 신뢰를 주는 문장을 넣어 주세요.
     - 필요한 경우 간단한 예시나 비유를 사용해 주세요.
-    - 설명 마지막에는 긍정적인 마무리 표현을 추가해 주세요.
-    - 설명은 700자 내외로 작성해 주세요.
+    - 설명은 800자 내외로 작성해 주세요.
 
     ---
     **[로봇수술동의서 내용]:**
@@ -192,7 +189,7 @@ def get_overall_consent_summary(user_profile):
     from config import HARDCODED_BASE_EXPLANATIONS, SECTIONS_ORDER_KEYS, SECTIONS_SIDEBAR_MAP
     
     all_sections_titles = ", ".join([
-        "수술 필요성", "수술 방법", "고려 사항", "부작용", "주의사항", "자기 결정권"
+        "수술 필요성", "수술 방법", "고려 사항", "합병증과 관리", "주의사항", "자기 결정권"
     ])
 
     summary_prompt = f"""

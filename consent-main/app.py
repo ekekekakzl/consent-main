@@ -228,7 +228,7 @@ def main():
     if st.session_state.profile_setup_completed:
         st.sidebar.markdown("---")
         st.sidebar.subheader("진행 단계")
-        step_names = ["수술필요성", "수술방법", "고려사항", "부작용", "주의사항", "자기결정권"]
+        step_names = ["수술필요성", "수술방법", "고려사항", "합병증과 관리", "주의사항", "자기결정권"]
         
         for i, step_name in enumerate(step_names):
             page_key = SECTIONS_ORDER_KEYS[i] 
@@ -269,7 +269,6 @@ def main():
         st.markdown("""
         환자분의 정보와 이해 수준을 바탕으로 기반으로, AI가 로봇수술동의서의 내용을 이해하기 쉽고 따뜻하게 설명해 드립니다.
         """, unsafe_allow_html=True)
-        st.markdown("---")
         st.subheader("나의 정보를 입력해주세요")
         render_profile_setup()
         if st.session_state.current_page == "main":

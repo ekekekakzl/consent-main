@@ -33,7 +33,6 @@ def render_section_navigation_buttons(section_idx, parent_column):
             break
 
     with parent_column:
-        st.markdown("---")
 
         nav_cols = st.columns(2) 
         with nav_cols[0]:
@@ -123,13 +122,13 @@ def render_section_page(section_idx, title, description, section_key):
         
         st.session_state.last_loaded_section_key = section_key
                 
-    col_left, col_right = st.columns([0.5, 0.5], gap="large") 
+    col_left, col_right = st.columns([0.6, 0.4], gap="large") 
 
     with col_left: 
-        title_col, play_col = st.columns([0.8, 0.2])
+        title_col, play_col = st.columns([0.7, 0.3])
         with title_col:
             st.markdown(f"""
-            <div style='display:flex; align-items:center; font-size:1.5rem; font-weight:bold; margin-bottom:8px; gap:8px;'>
+            <div style='display:flex; align-items:center; font-size:1.5rem; font-weight:bold; margin-bottom:0px; gap:8px;'>
                 <span>📄</span> {title}
             </div>
             """, unsafe_allow_html=True)
@@ -138,7 +137,7 @@ def render_section_page(section_idx, title, description, section_key):
                       on_click=_play_text_as_audio_callback, args=(st.session_state.current_gemini_explanation,))
 
         st.markdown(f"""
-        <div style='color:#666; font-size:1rem; margin-bottom:24px;'>
+        <div style='color:#666; font-size:1rem; margin-bottom:3px;'>
             {description}
         </div>
         """, unsafe_allow_html=True)
@@ -272,7 +271,7 @@ def render_considerations_page():
     render_section_page(3, "고려 사항", "수술 전후 고려해야 할 주요 사항에 대해 설명해 드립니다.", "considerations")
 
 def render_side_effects_page():
-    render_section_page(4, "부작용", "로봇수술로 발생할 수 있는 잠재적 부작용에 대해 설명해 드립니다.", "side_effects")
+    render_section_page(4, "합병증과 관리", "로봇수술로 발생할 수 있는 잠재적 합병증과 관리방법에 대해 설명해 드립니다.", "side_effects")
 
 def render_precautions_page():
     render_section_page(5, "주의사항", "수술 전후 환자분이 꼭 지켜야 할 주의사항에 대해 설명해 드립니다.", "precautions")

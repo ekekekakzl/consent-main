@@ -144,6 +144,15 @@ div[data-testid="stAppViewContainer"] > .main > .block-container {
     gap:8px;
 }
 
+/* 새로 추가된 섹션 서브헤더 스타일 */
+.section-subheader {
+    font-size: 1rem; /* 원하는 크기로 조절하세요. */
+    font-weight: bold; /* 필요하면 굵기 조절 */
+    margin-top: 20px; /* 상단 여백 추가 (필요시 조절) */
+    margin-bottom: 10px; /* 하단 여백 추가 (필요시 조절) */
+}
+
+
 /* Streamlit의 h1, h2 등 기본 제목 스타일의 상단 마진 제거 (일반적인 경우) */
 /* 이제 커스텀 클래스를 사용하므로 이 규칙은 덜 중요하지만, 혹시 모를 경우를 대비해 유지 */
 .stSidebar h1, .stSidebar h2, .stSidebar h3, .stSidebar h4, .stSidebar h5, .stSidebar h6,
