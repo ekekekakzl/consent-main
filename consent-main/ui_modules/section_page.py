@@ -5,6 +5,11 @@ import re
 from config import QUIZ_DATA, FAQ_DATA, SECTIONS_SIDEBAR_MAP, SECTIONS_ORDER_KEYS, HARDCODED_BASE_EXPLANATIONS
 
 def _play_text_as_audio_callback(text_to_speak):
+    """
+    텍스트를 음성으로 변환하여 재생하는 콜백 함수.
+    정규식을 사용하여 텍스트를 정리하고, gTTS를 통해 음성을 생성합니다.
+    생성된 음성은 Base64로 인코딩되어 HTML 오디오 태그로 삽입됩니다.
+    """
     cleaned_text = re.sub(r'[^\w\s.,?!가-힣a-zA-Z0-9]', ' ', text_to_speak)
     cleaned_text = re.sub(r'\s+', ' ', cleaned_text).strip()
 
@@ -23,9 +28,16 @@ def _play_text_as_audio_callback(text_to_speak):
         st.session_state.current_audio_html = ""
 
 def clear_user_question_input(key):
+    """
+    사용자 질문 입력 필드를 비우는 함수 (현재 사용되지 않음, 콜백으로 대체).
+    """
     st.session_state[key] = ""
 
 def render_section_navigation_buttons(section_idx, parent_column):
+    """
+    섹션 간 이동을 위한 '이전 단계' 및 '다음 단계' 버튼을 렌더링합니다.
+    마지막 섹션에서는 '설명 완료' 버튼으로 변경됩니다.
+    """
     current_page_key_index = -1
     for i, key in enumerate(SECTIONS_ORDER_KEYS):
         if SECTIONS_SIDEBAR_MAP[key]["idx"] == section_idx:
@@ -33,7 +45,6 @@ def render_section_navigation_buttons(section_idx, parent_column):
             break
 
     with parent_column:
-
         nav_cols = st.columns(2) 
         with nav_cols[0]:
             if current_page_key_index > 0:
@@ -47,7 +58,7 @@ def render_section_navigation_buttons(section_idx, parent_column):
                     st.session_state.current_faq_answer = ""
                     st.session_state.current_audio_html = ""
                     st.rerun()
-            else:
+            else: # 첫 번째 섹션일 경우 '환자 정보로 돌아가기' 버튼 표시
                 if st.button("환자 정보로 돌아가기", key=f"back_to_profile_{section_idx}", use_container_width=True):
                     st.session_state.profile_setup_completed = False
                     st.session_state.current_page = "profile_setup"
@@ -72,7 +83,7 @@ def render_section_navigation_buttons(section_idx, parent_column):
                     st.session_state.current_faq_answer = ""
                     st.session_state.current_audio_html = ""
                     st.rerun()
-            elif current_page_key_index == len(SECTIONS_ORDER_KEYS) - 1:
+            elif current_page_key_index == len(SECTIONS_ORDER_KEYS) - 1: # 마지막 섹션일 경우 '설명 완료' 버튼 표시
                 if st.button("설명 완료", key=f"finish_sections", use_container_width=True):
                     st.success("모든 동의서 설명을 완료했습니다! 이제 궁금한 점을 물어보세요.")
                     st.session_state.current_page = "final_chat"
@@ -84,12 +95,44 @@ def render_section_navigation_buttons(section_idx, parent_column):
                     st.session_state.current_audio_html = ""
                     st.rerun()
 
+def submit_user_chat_query(section_key):
+    """
+    사용자 채팅 질문을 처리하고 Gemini 응답을 받는 콜백 함수.
+    이 함수는 '전송' 버튼의 on_click 이벤트에서 호출됩니다.
+    """
+    user_query = st.session_state[f"chat_text_input_{section_key}"]
+    if user_query:
+        st.session_state.chat_history.append({"role": "user", "content": user_query})
+        st.session_state.current_audio_html = "" # 새 질문 시 기존 오디오 초기화
+        
+        with st.spinner("답변 생성 중..."):
+            try:
+                # chat_history_list에는 현재 사용자 메시지 직전까지의 기록을 전달
+                response_text = get_gemini_chat_response(
+                    st.session_state.chat_history[:-1], 
+                    user_query,
+                    initial_explanation=st.session_state.current_gemini_explanation,
+                    user_profile=st.session_state.user_profile
+                )
+                st.session_state.chat_history.append({"role": "assistant", "content": response_text})
+            except Exception as e:
+                st.error(f"Gemini API 호출 중 오류 발생: {e}")
+                st.session_state.chat_history.append({"role": "assistant", "content": "죄송합니다. 답변을 생성하는 데 문제가 발생했습니다."})
+        
+        # 입력 필드를 비우기 위해 session_state 값을 업데이트
+        st.session_state[f"chat_text_input_{section_key}"] = ""
+        st.rerun() # UI를 업데이트하고 입력 필드를 비우기 위해 재실행
 
 def render_section_page(section_idx, title, description, section_key):
+    """
+    각 동의서 섹션 페이지를 렌더링하는 핵심 함수.
+    섹션 설명, 채팅 인터페이스, 퀴즈, FAQ를 포함합니다.
+    """
     st.session_state.current_section = section_idx
 
     user_diagnosis = st.session_state.user_profile.get('diagnosis')
     
+    # 선택된 진단명에 대한 설명이 없는 경우 경고 메시지 표시
     if not (user_diagnosis and user_diagnosis in HARDCODED_BASE_EXPLANATIONS.get(title, {})):
         st.warning(f"선택된 진단명 '{user_diagnosis}'에 대한 '{title}' 정보가 하드코딩된 설명에 없습니다. 프로필을 다시 설정하거나 관리자에게 문의해주세요.")
         st.info("메인 페이지로 돌아가 프로필을 다시 설정하거나 관리자에게 문의해주세요.")
@@ -102,6 +145,7 @@ def render_section_page(section_idx, title, description, section_key):
             st.rerun()
         return
 
+    # 섹션이 변경되었거나 초기 로드 시 Gemini 설명을 새로 생성
     if not st.session_state.current_gemini_explanation or \
         st.session_state.get('last_loaded_section_key') != section_key:
         
@@ -147,6 +191,7 @@ def render_section_page(section_idx, title, description, section_key):
     with col_right:
         st.subheader("혹시 제가 설명드린 부분 중에 궁금한 점이나 더 알고 싶은 부분이 있으실까요?")
         
+        # 채팅 기록 표시
         for i, message in enumerate(st.session_state.chat_history):
             with st.chat_message(message["role"]):
                 st.markdown(message["content"])
@@ -154,30 +199,15 @@ def render_section_page(section_idx, title, description, section_key):
                     st.button("음성 재생 ▶️", key=f"play_chat_section_{section_key}_{i}", use_container_width=True,
                               on_click=_play_text_as_audio_callback, args=(message["content"],))
 
-
-        user_query = st.text_input("궁금한 점을 입력하세요:", key=f"chat_text_input_{section_key}")
-        send_button = st.button("전송", key=f"chat_send_button_{section_key}")
-
-        if send_button and user_query:
-            st.session_state.chat_history.append({"role": "user", "content": user_query})
+        # 채팅 입력 필드 초기화 (필요한 경우)
+        if f"chat_text_input_{section_key}" not in st.session_state:
             st.session_state[f"chat_text_input_{section_key}"] = ""
-            st.session_state.current_audio_html = ""
-            
-            with st.spinner("답변 생성 중..."):
-                try:
-                    response_text = get_gemini_chat_response(
-                        st.session_state.chat_history[:-1],
-                        user_query,
-                        initial_explanation=st.session_state.current_gemini_explanation,
-                        user_profile=st.session_state.user_profile
-                    )
-                    st.session_state.chat_history.append({"role": "assistant", "content": response_text})
-                except Exception as e:
-                    st.error(f"Gemini API 호출 중 오류 발생: {e}")
-                    st.session_state.chat_history.append({"role": "assistant", "content": "죄송합니다. 답변을 생성하는 데 문제가 발생했습니다."})
-            
-            st.rerun()
 
+        # 채팅 입력 필드
+        st.text_input("궁금한 점을 입력하세요:", key=f"chat_text_input_{section_key}")
+        
+        # '전송' 버튼에 콜백 함수 연결
+        st.button("전송", key=f"chat_send_button_{section_key}", on_click=submit_user_chat_query, args=(section_key,))
 
         st.subheader("💡 이해도 확인 OX 퀴즈")
         
@@ -223,9 +253,9 @@ def render_section_page(section_idx, title, description, section_key):
                             st.session_state.current_quiz_idx = 0
                             st.session_state.current_audio_html = ""
                             st.rerun()
-                        
+                            
             else:
-                st.info("이 섹션의 모든 퀴즈를 이미 완료하셨습니다! 다음 단계로 넘어가거나 다른 섹션을 살펴보세요. �")
+                st.info("이 섹션의 모든 퀴즈를 이미 완료하셨습니다! 다음 단계로 넘어가거나 다른 섹션을 살펴보세요. 😊")
                 st.session_state.show_quiz = False
                 st.session_state.current_quiz_idx = 0
                 st.session_state.current_audio_html = ""

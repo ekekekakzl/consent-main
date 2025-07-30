@@ -20,6 +20,7 @@ from ui_modules.final_summary_page import render_final_summary_page
 
 st.set_page_config(layout="wide")
 
+# CSS 파일 로드
 css_file_path = os.path.join(os.path.dirname(__file__), "style", "styles.css")
 if os.path.exists(css_file_path):
     with open(css_file_path, 'r', encoding='utf-8') as f:
@@ -27,6 +28,7 @@ if os.path.exists(css_file_path):
 else:
     st.warning(f"CSS 파일을 찾을 수 없습니다: {css_file_path}. 기본 스타일이 적용됩니다.")
 
+# Gemini API 설정
 CONFIG_LOADED = False
 try:
     GEMINI_API_KEY = st.secrets["gemini_api_key"]
@@ -37,6 +39,8 @@ except KeyError as e:
 except Exception as e:
     st.error(f"⚠️ Gemini API 설정 중 오류 발생: {e}")
 
+# Streamlit Session State 초기화
+# 앱이 시작될 때 한 번만 실행되어야 하는 초기화 로직
 if 'chat_history' not in st.session_state:
     st.session_state.chat_history = []
 if 'quiz_answers' not in st.session_state:
@@ -75,11 +79,15 @@ if 'final_chat_text_input_value' not in st.session_state:
     st.session_state.final_chat_text_input_value = ""
 if 'overall_summary_content' not in st.session_state:
     st.session_state.overall_summary_content = ""
-
 if 'current_audio_html' not in st.session_state:
     st.session_state.current_audio_html = ""
 
 def _play_text_as_audio_callback(text_to_speak):
+    """
+    텍스트를 음성으로 변환하여 재생하는 콜백 함수.
+    정규식을 사용하여 텍스트를 정리하고, gTTS를 통해 음성을 생성합니다.
+    생성된 음성은 Base64로 인코딩되어 HTML 오디오 태그로 삽입됩니다.
+    """
     cleaned_text = re.sub(r'[^\w\s.,?!가-힣a-zA-Z0-9]', ' ', text_to_speak)
     cleaned_text = re.sub(r'\s+', ' ', cleaned_text).strip()
 
@@ -97,7 +105,32 @@ def _play_text_as_audio_callback(text_to_speak):
         st.error("음성 생성에 실패했습니다. 인터넷 연결을 확인하거나 잠시 후 다시 시도해주세요.")
         st.session_state.current_audio_html = ""
 
+def submit_final_chat_query():
+    """
+    최종 채팅 페이지에서 사용자 질문을 처리하고 Gemini 응답을 받는 콜백 함수.
+    이 함수는 '전송' 버튼의 on_click 이벤트에서 호출됩니다.
+    """
+    user_query = st.session_state.final_chat_text_input
+    if user_query:
+        st.session_state.chat_history.append({"role": "user", "content": user_query})
+        st.session_state.current_audio_html = "" # 새 질문 시 기존 오디오 초기화
+        
+        with st.spinner("답변 생성 중..."):
+            response = get_gemini_chat_response(
+                st.session_state.chat_history[:-1], # 현재 질문 이전의 기록 전달
+                user_query,
+                user_profile=st.session_state.user_profile
+            )
+            st.session_state.chat_history.append({"role": "assistant", "content": response})
+        
+        # 입력 필드를 비우기 위해 session_state 값을 업데이트
+        st.session_state.final_chat_text_input = "" # text_input의 key와 동일하게 설정
+        st.rerun() # UI를 업데이트하고 입력 필드를 비우기 위해 재실행
+
 def render_final_chat_page():
+    """
+    모든 섹션 설명 완료 후 환자와 자유롭게 대화하는 페이지를 렌더링합니다.
+    """
     st.markdown("<h1 class='final-chat-title'>모든 설명을 완료했습니다! 🎉</h1>", unsafe_allow_html=True)
     st.info("동의서에 대한 설명을 들어주셔서 감사합니다. 최선을 다하여 안전하게 수술하도록 하겠습니다. 궁금한 점이 있다면 편하게 물어봐주세요.")
 
@@ -113,25 +146,15 @@ def render_final_chat_page():
                     st.button("음성 재생 ▶️", key=f"play_final_chat_{i}", use_container_width=True,
                               on_click=_play_text_as_audio_callback, args=(message["content"],))
 
-    user_query = st.text_input(
+    # 채팅 입력 필드
+    # value 인자를 제거하고, key를 통해 session_state에 직접 연결되도록 합니다.
+    st.text_input(
         "궁금한 점을 입력해주세요.",
-        key="final_chat_text_input",
-        value=st.session_state.final_chat_text_input_value
+        key="final_chat_text_input", # 이 key가 submit_final_chat_query에서 사용됩니다.
     )
-    send_button = st.button("전송", key="final_chat_send_button")
-
-    if send_button and user_query:
-        st.session_state.chat_history.append({"role": "user", "content": user_query})
-        st.session_state.final_chat_text_input_value = "" 
-        
-        with st.spinner("답변 생성 중..."):
-            response = get_gemini_chat_response(
-                st.session_state.chat_history[:-1],
-                user_query,
-                user_profile=st.session_state.user_profile
-            )
-            st.session_state.chat_history.append({"role": "assistant", "content": response})
-        st.rerun()
+    
+    # '전송' 버튼에 콜백 함수 연결
+    st.button("전송", key="final_chat_send_button", on_click=submit_final_chat_query)
 
     st.markdown("---")
     
@@ -157,6 +180,9 @@ def render_final_chat_page():
 
 
 def render_final_summary_page():
+    """
+    전체 동의서 내용을 요약하여 표시하는 페이지를 렌더링합니다.
+    """
     st.markdown("<h1 class='summary-title'>전체 동의서 요약 📝</h1>", unsafe_allow_html=True)
     st.info("여기에 전체 동의서의 주요 내용이 요약되어 표시될 예정입니다.")
 
@@ -207,6 +233,9 @@ def render_final_summary_page():
 
 
 def main():
+    """
+    Streamlit 앱의 메인 함수. 로그인, 프로필 설정, 섹션 탐색, 최종 채팅 및 요약 페이지를 관리합니다.
+    """
     if not st.session_state["logged_in"]:
         render_login_page()
         return
