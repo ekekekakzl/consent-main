@@ -1,4 +1,5 @@
 import streamlit as st
+import os
 from gemini_utils import get_gemini_chat_response, get_gemini_response_from_combined_content, synthesize_speech
 import base64
 import re
@@ -180,11 +181,13 @@ def render_section_page(section_idx, title, description, section_key):
             st.button("음성 재생 ▶️", key=f"play_section_explanation_{section_key}", use_container_width=True,
                       on_click=_play_text_as_audio_callback, args=(st.session_state.current_gemini_explanation,))
 
-        st.markdown(f"""
-        <div style='color:#666; font-size:1rem; margin-bottom:3px;'>
-            {description}
-        </div>
-        """, unsafe_allow_html=True)
+        if section_key == "method":
+            st.markdown("<br>", unsafe_allow_html=True) # 제목과 이미지 사이 간격
+            img_path = os.path.join(os.path.dirname(__file__), "../images/로봇수술이미지.png")
+            img_col_1, img_col_2, img_col_3 = st.columns([0.15, 0.7, 0.15]) # 70% 너비, 중앙 정렬
+            with img_col_2:
+                st.image(img_path, caption="[로봇수술 시스템 구성 요소 이미지]", use_container_width=True) 
+
         st.markdown(f"<div style='background-color:#f9f9f9; padding:20px; border-radius:10px; border:1px solid #eee; min-height: 400px;'>{st.session_state.current_gemini_explanation}</div>", unsafe_allow_html=True)
 
 

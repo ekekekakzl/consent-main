@@ -153,6 +153,7 @@ def get_gemini_response_from_combined_content(user_profile=None, current_section
     **설명 지침:**
     - 불안해하는 환자에게 따뜻하고 안심되는 말투와와 공감과 신뢰를 주는 문장을 넣어 주세요.
     - 필요한 경우 간단한 예시나 비유를 사용해 주세요.
+    - 핵심 단어에 굵은 폰트로 변경하고 파란색으로 변경해주세요.
     - 설명은 800자 내외로 작성해 주세요.
 
     ---
