@@ -1,0 +1,118 @@
+/* Streamlit 앱의 전체 기본 글꼴 크기 설정 */
+html, body, .stApp {
+    font-size: 20px;
+}
+
+/* [최종 해결] 설명 텍스트의 배경을 강제로 투명하게 만드는 새로운 클래스 */
+.unstyled-paragraph {
+    background: none !important;
+    background-color: transparent !important;
+    border: none !important;
+    padding: 0 !important;
+    margin-bottom: 1rem; /* 문단 간 간격 추가 */
+}
+
+/* Streamlit 기본 버튼 스타일 오버라이드 */
+.stButton>button {
+    background-color: #9df1a0;
+    color: rgb(0, 0, 0);
+    border: none;
+    padding: 10px 20px;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    font-size: 20px;
+    margin: 4px 2px;
+    cursor: pointer;
+    border-radius: 8px;
+    transition: background-color 0.3s ease;
+}
+
+/* 버튼 호버 시 색상 변경 */
+.stButton>button:hover {
+    background-color: #45a049;
+}
+
+/* 입력 필드 (text_input, number_input) 배경 및 글자색 변경 */
+div.stTextInput > div > div > input,
+div.stNumberInput > div > div > input {
+    background-color: #e0f2f7;
+    color: #2c3e50;
+    border: 1px solid #a7d9ed;
+    border-radius: 5px;
+    padding: 15px;
+    font-size: 18px
+}
+
+/* 텍스트 영역 (text_area) 배경 및 글자색 변경 */
+div.stTextArea > div > textarea {
+    background-color: #e0f2f7;
+    color: #2c3e50;
+    border: 1px solid #a7d9ed;
+    border-radius: 5px;
+    padding: 15px;
+    font-size: 18px;
+}
+
+/* Selectbox (드롭다운) 배경 및 글자색 변경 */
+div.stSelectbox > div[data-baseweb="select"] > div,
+div.stSelectbox > div[data-baseweb="select"] > div > div {
+    background-color: #e0f2f7 !important;
+    color: #2c3e50 !important;
+    border: 1px solid #a7d9ed !important;
+    border-radius: 5px !important;
+}
+/* 드롭다운 메뉴 아이템 */
+div[data-baseweb="popover"] > div > ul > li {
+    background-color: #e0f2f7 !important;
+    color: #2c3e50 !important;
+}
+div[data-baseweb="popover"] > div > ul > li:hover {
+    background-color: #d1edfa !important; /* 호버 색상 */
+}
+
+/* 프로그레스 바 텍스트 색상 (스피너 내부 텍스트) */
+.stSpinner > div > span {
+    color: #3498db !important;
+}
+
+/* FAQ 답변 박스 스타일 */
+.faq-answer-box {
+    background-color: #e6f7ff;
+    padding: 15px;
+    border-radius: 8px;
+    border: 1px solid #91d5ff;
+    margin-top: 15px;
+}
+
+/* 오디오 플레이어를 화면 하단에 고정 */
+.audio-player-container {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 80%;
+    max-width: 600px;
+    background-color: rgba(255, 255, 255, 0.9);
+    padding: 10px;
+    border-radius: 10px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    z-index: 1000;
+}
+
+/* --- 레이아웃 정렬을 위한 CSS --- */
+div[data-testid="stHeader"] {
+    display: none !important;
+}
+
+div[data-testid="stSidebarContent"] > .block-container,
+div[data-testid="stAppViewContainer"] > .main > .block-container {
+    padding-top: 1.5rem !important;
+}
+
+/* 커스텀 제목 클래스 */
+.sidebar-menu-title, .main-app-title, .final-chat-title, .summary-title {
+    margin-top: 0 !important;
+    padding-top: 0 !important;
+    margin-bottom: 1rem;
+}
