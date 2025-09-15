@@ -164,7 +164,8 @@ def render_section_page(section_idx, title, description, section_key):
             if st.button("답변 닫기", key=f"clear_faq_answer_{section_key}"):
                 st.session_state.current_faq_answer = ""
                 st.rerun()
-
+                
+        st.markdown("---")
         # --- 네비게이션 버튼 ---
         render_section_navigation_buttons(section_idx, col_right)
 
@@ -185,4 +186,5 @@ def render_precautions_page():
     render_section_page(5, "주의사항", "수술 전후 환자분이 꼭 지켜야 할 주의사항에 대해 설명해 드립니다.", "precautions")
 
 def render_self_determination_page():
+
     render_section_page(6, "자기결정권", "환자분의 자기 결정권과 관련된 중요한 내용에 대해 설명해 드립니다.", "self_determination")
