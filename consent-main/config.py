@@ -7,7 +7,7 @@ PASSWORD = "1"
 # --- 하드코딩된 기본 설명 ---
 # 각 수술명에 맞춰 섹션별 설명 내용을 정의합니다.
 HARDCODED_BASE_EXPLANATIONS = {
-    "수술 필요성": {
+    "필요성": {
         "로봇보조 자궁절제술": """
         **[수술이 왜 필요한가요?]**
         <br>수술을 통해 <span style="color: #007bff;">**암 덩어리를 제거**</span>하고, 암이 퍼질 수 있는 **자궁 주변 조직과 림프절**도 함께 잘라낼 수 있습습니다.
@@ -38,7 +38,7 @@ HARDCODED_BASE_EXPLANATIONS = {
         수술 방법은 수술 전 검사 결과와 환자의 건강 상태, 과거 병력을 살펴본 후 배를 여는 수술, 복강경 수술, <span style="color: #007bff;">**로봇수술**</span> 중에서 선택합니다.
         """
     },
-    "수술 방법": {
+    "방법": {
         "로봇보조 자궁절제술": """
         **[로봇수술 장비]**
         <br>로봇수술은 **3가지**로 구성됩니다:
@@ -409,3 +409,4 @@ SECTIONS_SIDEBAR_MAP = {
 # 섹션 순서 (이전/다음 버튼 등에 사용)
 
 SECTIONS_ORDER_KEYS = ["necessity", "method", "considerations", "side_effects", "precautions", "self_determination"]
+
