@@ -305,7 +305,7 @@ QUIZ_DATA = {
             "question": "로봇수술은 아주 작은 부위까지 확대해서 볼 수 있고 삼차원으로 볼 수 있어 더 정교하게 수술할 수 있어요. (O/X)",
             "answer": "O",
             "explanation": "로봇에 달린 카메라를 통해 훨씬 더 자세히 볼 수 있게 도와줘서 수술이 더 섬세하게 진행될 수 있어요. ✨"
-        }
+        },
         {
             "question": "로봇수술 시 로봇 팔이 들어갈 수 있는 작은 구멍을 배에 한개 또는 두개 내요. (O/X)",
             "answer": "X",
@@ -407,4 +407,5 @@ SECTIONS_SIDEBAR_MAP = {
 }
 
 # 섹션 순서 (이전/다음 버튼 등에 사용)
+
 SECTIONS_ORDER_KEYS = ["necessity", "method", "considerations", "side_effects", "precautions", "self_determination"]
