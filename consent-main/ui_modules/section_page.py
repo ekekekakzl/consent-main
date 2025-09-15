@@ -95,7 +95,7 @@ def render_section_page(section_idx, title, description, section_key):
         if section_key == "method":
             img_path = os.path.join(os.path.dirname(__file__), "../images/로봇수술이미지.png")
             if os.path.exists(img_path):
-                st.image(img_path, caption="[로봇수술 시스템 구성 요소 이미지]", use_container_width=True)
+                st.image(img_path, caption="[로봇수술 시스템 구성 요소]", use_container_width=True)
 
         explanation_text = st.session_state.get('current_gemini_explanation', '')
         if explanation_text:
@@ -159,8 +159,6 @@ def render_section_page(section_idx, title, description, section_key):
 
         if st.session_state.current_faq_answer:
             st.markdown(f"<div class='faq-answer-box'><strong>답변:</strong> {st.session_state.current_faq_answer}</div>", unsafe_allow_html=True)
-            st.button("음성 재생 ▶️", key=f"play_faq_answer_{section_key}", use_container_width=True,
-                      on_click=_play_text_as_audio_callback, args=(st.session_state.current_faq_answer,))
             if st.button("답변 닫기", key=f"clear_faq_answer_{section_key}"):
                 st.session_state.current_faq_answer = ""
                 st.rerun()
@@ -171,20 +169,21 @@ def render_section_page(section_idx, title, description, section_key):
 
 
 def render_necessity_page():
-    render_section_page(1, "수술 필요성", "로봇수술이 필요한 이유와 중요성에 대해 설명해 드립니다.", "necessity")
+    render_section_page(1, "필요성", "로봇수술이 필요한 이유와 중요성", "necessity")
 
 def render_method_page():
-    render_section_page(2, "수술 방법", "로봇을 이용한 수술 절차와 과정에 대해 설명해 드립니다.", "method")
+    render_section_page(2, "방법", "로봇을 이용한 수술 방법과 과정", "method")
 
 def render_considerations_page():
-    render_section_page(3, "고려 사항", "수술 전후 고려해야 할 주요 사항에 대해 설명해 드립니다.", "considerations")
+    render_section_page(3, "고려 사항", "수술 시 고려해야 할 주요 사항", "considerations")
 
 def render_side_effects_page():
-    render_section_page(4, "합병증과 관리", "로봇수술로 발생할 수 있는 잠재적 합병증과 관리방법에 대해 설명해 드립니다.", "side_effects")
+    render_section_page(4, "합병증과 관리", "로봇수술로 발생할 수 있는 잠재적 합병증과 관리방법", "side_effects")
 
 def render_precautions_page():
-    render_section_page(5, "주의사항", "수술 전후 환자분이 꼭 지켜야 할 주의사항에 대해 설명해 드립니다.", "precautions")
+    render_section_page(5, "주의사항", "환자께 말씀드려야 할 주의사항", "precautions")
 
 def render_self_determination_page():
 
-    render_section_page(6, "자기결정권", "환자분의 자기 결정권과 관련된 중요한 내용에 대해 설명해 드립니다.", "self_determination")
+    render_section_page(6, "자기결정권", "동의서에 서명 전 알아야 하는 내용", "self_determination")
+
