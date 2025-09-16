@@ -27,7 +27,6 @@ def _clean_text_for_speech(text: str) -> str:
 
     def process_table_with_context(match):
         """표와 그 제목을 함께 처리하여 자연스러운 음성 안내 문구를 생성하는 내부 함수."""
-        # group(1)은 TTS 주석에서 추출한 제목, group(2)는 표 블록입니다.
         title = match.group(1).strip() if match.group(1) else None
         table_text = match.group(2)
         
@@ -35,11 +34,9 @@ def _clean_text_for_speech(text: str) -> str:
         
         readable_rows = []
         for line in lines:
-            # 마크다운 표의 구분선(예: |---|---|)은 건너뜁니다.
             if re.fullmatch(r'[\s|:-]+', line):
                 continue
             
-            # 각 행을 '|' 기준으로 나누고, 빈 셀은 제외합니다.
             cells = [cell.strip() for cell in line.split('|') if cell.strip()]
             if cells:
                 row_text = ', '.join(cells)
@@ -48,18 +45,23 @@ def _clean_text_for_speech(text: str) -> str:
         readable_table = '. '.join(readable_rows)
         if readable_table:
             if title:
-                # 음성용 제목이 있으면 제목과 함께 안내 문구를 생성합니다.
-                return f"다음은 '{title}' 표의 내용입니다. {readable_table}."
+                return f"다음은 '{title}'의의 내용입니다. {readable_table}."
             else:
-                # 제목이 없으면 일반적인 안내 문구를 생성합니다.
                 return f"다음은 표의 내용입니다. {readable_table}."
         return ""
 
     # 0. 음성용 제목 주석(<!-- TTS-TITLE: ... -->)과 그 아래의 표를 찾아 먼저 처리합니다.
-    # 이 패턴은 선택적인 TTS-TITLE 주석과 그 바로 뒤에 오는 표 블록을 찾습니다.
     table_pattern = re.compile(r'(?:^\s*<!--\s*TTS-TITLE:\s*(.*?)\s*-->\s*\n+)?((?:^\s*\|(?:.*?\|)+\s*\n)+)', re.MULTILINE)
     text = table_pattern.sub(process_table_with_context, text)
     
+    # [수정] 일반 텍스트용 음성 전용 주석 처리 시, 뒤에 공백을 추가하여 단어가 붙는 현상을 방지합니다.
+    tts_only_pattern = re.compile(r'<!--\s*TTS-ONLY:\s*(.*?)\s*-->')
+    text = tts_only_pattern.sub(r'\1 ', text)
+    
+    # 화면에만 표시될 텍스트(<span class="tts-skip">...</span>)를 제거합니다.
+    screen_only_pattern = re.compile(r'<span class="tts-skip">.*?</span>', re.DOTALL)
+    text = screen_only_pattern.sub('', text)
+
     # 1. HTML 태그 제거
     text = re.sub(r'<[^>]+>', '', text)
     
@@ -73,13 +75,13 @@ def _clean_text_for_speech(text: str) -> str:
     text = re.sub(r'^\s*#+\s*', '', text, flags=re.MULTILINE)
     
     # 5. 목록 마커 처리
-    # 숫자 목록 (예: 1.) -> 숫자만 남김 (예: 1)
     text = re.sub(r'(^\s*\d+)\.\s+', r'\1 ', text, flags=re.MULTILINE)
-    # 불릿 목록 (예: * 또는 -) -> 마커 제거
     text = re.sub(r'^\s*[\*\-]\s+', '', text, flags=re.MULTILINE)
 
-    # 6. 자연스러운 쉼 추가
-    text = text.replace('\n\n', '. ').replace('\n', ', ')
+    # 6. 자연스러운 쉼 추가 (더 명확한 띄어읽기를 위해 수정)
+    # 문단 바꿈은 긴 쉼(. . .)으로, 일반 줄바꿈은 짧은 쉼(쉼표)으로 변환합니다.
+    text = text.replace('\n\n', '. . . ')
+    text = text.replace('\n', ', ')
 
     # 7. 기타 불필요한 특수문자 제거
     text = re.sub(r'[^\w\s.,?!가-힣a-zA-Z0-9]', ' ', text)
@@ -100,10 +102,8 @@ def play_text_as_audio_callback(text_to_speak: str, output_filename: str, voice:
             st.warning("음성으로 변환할 텍스트가 없습니다.")
             return
 
-        # 비동기 함수를 실행하여 음성 파일을 생성합니다.
         run_async(_synthesize_with_edge_tts_async(cleaned_text, voice, output_filename))
         
-        # 세션 상태에 재생할 오디오 파일 경로를 저장합니다.
         st.session_state.audio_file_to_play = output_filename
         
     except Exception as e:
