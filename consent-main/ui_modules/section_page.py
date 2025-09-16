@@ -1,33 +1,9 @@
 import streamlit as st
 import os
-import base64
-import re
-from config import QUIZ_DATA, FAQ_DATA, SECTIONS_SIDEBAR_MAP, SECTIONS_ORDER_KEYS
-from gemini_utils import get_gemini_response_from_combined_content, synthesize_speech
-
-def _play_text_as_audio_callback(text_to_speak):
-    """
-    텍스트를 음성으로 변환하여 재생하는 콜백 함수.
-    """
-    cleaned_text = re.sub(r'[^\w\s.,?!가-힣a-zA-Z0-9]', ' ', text_to_speak)
-    cleaned_text = re.sub(r'\s+', ' ', cleaned_text).strip()
-
-    if not cleaned_text:
-        return
-
-    audio_bytes = synthesize_speech(cleaned_text)
-    if audio_bytes:
-        base64_audio = base64.b64encode(audio_bytes).decode('utf-8')
-        audio_html = f"""
-        <audio controls autoplay style="width: 100%;">
-            <source src="data:audio/mp3;base64,{base64_audio}" type="audio/mp3">
-            Your browser does not support the audio element.
-        </audio>
-        """
-        st.session_state.current_audio_html = audio_html
-    else:
-        st.error("음성 생성에 실패했습니다. 인터넷 연결을 확인하거나 잠시 후 다시 시도해주세요.")
-        st.session_state.current_audio_html = ""
+from config import QUIZ_DATA, FAQ_DATA, SECTIONS_ORDER_KEYS
+from gemini_utils import get_gemini_response_from_combined_content
+# 새로 만든 오디오 유틸리티 파일에서 콜백 함수를 가져옵니다.
+from ui_modules.audio_utils import play_text_as_audio_callback
 
 def render_section_navigation_buttons(section_idx, parent_column):
     """
@@ -63,15 +39,12 @@ def render_section_page(section_idx, title, description, section_key):
     """
     각 동의서 섹션 페이지를 렌더링하는 핵심 함수.
     """
-    # 페이지가 변경되면 관련 세션 상태 초기화
     if st.session_state.get('last_loaded_section_key') != section_key:
         st.session_state.current_gemini_explanation = ""
-        st.session_state.current_quiz_idx = 0
         st.session_state.quiz_answers = {}
         st.session_state.current_faq_answer = ""
-        st.session_state.current_audio_html = ""
+        st.session_state.audio_file_to_play = None
 
-    # 설명 내용 가져오기
     if not st.session_state.current_gemini_explanation:
         explanation = get_gemini_response_from_combined_content(
             user_profile=st.session_state.user_profile,
@@ -80,7 +53,6 @@ def render_section_page(section_idx, title, description, section_key):
         st.session_state.current_gemini_explanation = explanation
         st.session_state.last_loaded_section_key = section_key
 
-    # --- 메인 설명 영역 (왼쪽) ---
     col_left, col_right = st.columns([0.7, 0.3], gap="large")
     with col_left:
         title_col, play_col = st.columns([0.7, 0.3])
@@ -89,8 +61,10 @@ def render_section_page(section_idx, title, description, section_key):
             st.caption(description)
         with play_col:
             if st.session_state.current_gemini_explanation:
+                # on_click에서 audio_utils의 함수를 호출하고, 고유한 파일 이름을 전달합니다.
                 st.button("음성 재생 ▶️", key=f"play_section_explanation_{section_key}", use_container_width=True,
-                          on_click=_play_text_as_audio_callback, args=(st.session_state.current_gemini_explanation,))
+                          on_click=play_text_as_audio_callback, 
+                          args=(st.session_state.current_gemini_explanation, "section_audio.mp3"))
 
         if section_key == "method":
             img_path = os.path.join(os.path.dirname(__file__), "../images/로봇수술이미지.png")
@@ -99,11 +73,10 @@ def render_section_page(section_idx, title, description, section_key):
 
         explanation_text = st.session_state.get('current_gemini_explanation', '')
         if explanation_text:
-            paragraphs = re.split(r'\n\s*\n', explanation_text.strip())
-            for paragraph in paragraphs:
-                if paragraph.strip():
-                    st.markdown(paragraph, unsafe_allow_html=True)
-
+            st.markdown(explanation_text, unsafe_allow_html=True)
+        
+        if st.session_state.get('audio_file_to_play'):
+            st.audio(st.session_state.audio_file_to_play, autoplay=True)
 
     with col_right:
         st.subheader("💡 이해도 확인 OX 퀴즈")
@@ -133,12 +106,10 @@ def render_section_page(section_idx, title, description, section_key):
             st.info("이 섹션에 대한 퀴즈가 아직 준비되지 않았습니다.")
         st.markdown("---")
 
-        # --- FAQ 섹션 ---
         st.subheader("🤔 자주 묻는 질문 (FAQ)")
         section_faqs = FAQ_DATA.get(section_key, [])
 
         if section_faqs:
-            # FAQ 버튼들을 이 컨테이너로 감싸서 특별한 스타일을 적용합니다.
             st.markdown("<div class='secondary-button-wrapper'>", unsafe_allow_html=True)
             for i, faq_item in enumerate(section_faqs):
                 if st.button(faq_item["question"], key=f"faq_q_{section_key}_{i}", use_container_width=True):
@@ -158,15 +129,13 @@ def render_section_page(section_idx, title, description, section_key):
                 st.rerun()
 
         st.markdown("---")
-        # --- 네비게이션 버튼 ---
         render_section_navigation_buttons(section_idx, col_right)
-
 
 def render_necessity_page():
     render_section_page(1, "필요성", "로봇수술이 필요한 이유", "necessity")
 
 def render_method_page():
-    render_section_page(2, "방법", "로봇 수술에 대한 설명과과 수술 과정", "method")
+    render_section_page(2, "방법", "로봇 수술에 대한 설명과 수술 과정", "method")
 
 def render_considerations_page():
     render_section_page(3, "고려 사항", "로봇수술 시 고려할 사항", "considerations")
