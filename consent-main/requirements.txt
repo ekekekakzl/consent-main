@@ -1,8 +1,8 @@
 streamlit==1.45.1
 pandas==2.2.3
-google-generativeai==0.8.0 # Gemini API 호출에 필요
-toml==0.10.2 
+google-generativeai==0.8.0
+toml==0.10.2
 numpy==1.24.3
 python-dateutil==2.8.2
 requests==2.31.0
-gTTS==2.5.1
+edge-tts
