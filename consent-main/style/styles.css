@@ -27,14 +27,19 @@ html, body, .stApp {
     background-color: #45a049 !important;
 }
 
-/* 2. Primary 버튼 컨테이너 내부의 버튼 스타일을 덮어씁니다. (파란색) */
-.primary-button-wrapper .stButton > button {
+.stButton > button[kind="primary"] {
     background-color: #007bff !important;
     color: white !important;
+    border: none !important;
+    padding: 10px 20px;
+    font-size: 20px;
+    margin: 4px 2px;
+    border-radius: 8px;
 }
-.primary-button-wrapper .stButton > button:hover {
+.stButton > button[kind="primary"]:hover {
     background-color: #0056b3 !important;
 }
+
 
 /* 입력 필드 (text_input, number_input) 배경 및 글자색 변경 */
 div.stTextInput > div > div > input,
@@ -128,3 +133,4 @@ div[data-testid="stAppViewContainer"] > .main > .block-container {
     padding-top: 0 !important;
     margin-bottom: 1rem;
 }
+
