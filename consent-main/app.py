@@ -70,13 +70,11 @@ def render_final_chat_page():
     st.info("동의서에 대한 설명을 들어주셔서 감사합니다. 추가적으로 궁금한 점이 있다면 의료진에게 편하게 질문해주세요.")
     st.markdown("---")
 
-    col_re_enter_profile, col_summarize = st.columns(2)
-    with col_re_enter_profile:
-        if st.button("환자 정보 다시 입력하기", key="re_enter_profile_from_final_chat", use_container_width=True):
-            logged_in_status = st.session_state.get("logged_in", False)
-            st.session_state.clear()
-            st.session_state["logged_in"] = logged_in_status
-            st.session_state.current_page = "profile_setup"
+    col_back_to_last_section, col_summarize = st.columns(2)
+    with col_back_to_last_section:
+        if st.button("이전 단계", key="back_to_last_section_from_final", use_container_width=True):
+            last_section_key = SECTIONS_ORDER_KEYS[-1]
+            st.session_state.current_page = last_section_key
             st.rerun()
     with col_summarize:
         if st.button("전체 동의서 요약하기", key="summarize_consent_button_from_final_chat", use_container_width=True):

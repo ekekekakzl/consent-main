@@ -51,14 +51,14 @@ def render_final_summary_page():
     st.markdown("---")
     col_back_to_main, col_re_enter_profile = st.columns(2)
     with col_back_to_main:
-        if st.button("메인 페이지로 돌아가기", key="back_to_main_from_summary", use_container_width=True):
+        if st.button("이전단계", key="back_to_main_from_summary", use_container_width=True):
             st.session_state.current_page = "final_chat" # 최종 채팅 페이지로 돌아갑니다.
             st.session_state.overall_summary_content = "" # 요약 내용 초기화
             st.session_state.current_audio_html = ""
             st.rerun()
             
     with col_re_enter_profile:
-        if st.button("환자 정보 다시 입력하기", key="re_enter_profile_from_summary", use_container_width=True):
+        if st.button("정보 다시 입력하기", key="re_enter_profile_from_summary", use_container_width=True):
             # 모든 세션 상태를 초기화하여 처음부터 다시 시작합니다.
             st.session_state.profile_setup_completed = False
             st.session_state.current_page = "profile_setup"
