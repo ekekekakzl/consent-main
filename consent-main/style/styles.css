@@ -133,3 +133,7 @@ div[data-testid="stAppViewContainer"] > .main > .block-container {
     padding-top: 0 !important;
     margin-bottom: 1rem;
 }
+.tts-only {
+    display: none;
+    /* 화면에서 완전히 사라지게 하는 CSS 속성입니다. */
+}

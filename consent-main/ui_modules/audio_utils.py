@@ -13,9 +13,12 @@ def run_async(coro):
         asyncio.set_event_loop(loop)
     return loop.run_until_complete(coro)
 
-async def _synthesize_with_edge_tts_async(text: str, voice: str, file_name: str):
-    """edge-tts를 사용하여 음성 파일을 비동기적으로 생성합니다."""
-    communicate = edge_tts.Communicate(text, voice)
+async def _synthesize_with_edge_tts_async(text: str, voice: str, file_name: str, rate: str = "-5%"):
+    """
+    edge-tts를 사용하여 음성 파일을 비동기적으로 생성합니다.
+    rate의 기본값을 -5%로 설정하여 약간 느리게 말하도록 합니다.
+    """
+    communicate = edge_tts.Communicate(text, voice, rate=rate)
     await communicate.save(file_name)
 
 def _clean_text_for_speech(text: str) -> str:
@@ -45,24 +48,27 @@ def _clean_text_for_speech(text: str) -> str:
         readable_table = '. '.join(readable_rows)
         if readable_table:
             if title:
-                return f"다음은 '{title}'의의 내용입니다. {readable_table}."
+                return f"다음은 '{title}' 표의 내용입니다. {readable_table}."
             else:
                 return f"다음은 표의 내용입니다. {readable_table}."
         return ""
 
-    # 0. 음성용 제목 주석(<!-- TTS-TITLE: ... -->)과 그 아래의 표를 찾아 먼저 처리합니다.
+    # [개선] 화면에는 보이지만 음성에서는 제외할 텍스트를 안정적인 주석 방식으로 먼저 제거합니다.
+    screen_only_pattern = re.compile(r'<!--\s*TTS-SKIP-START\s*-->.*?<!--\s*TTS-SKIP-END\s*-->', re.DOTALL)
+    text = screen_only_pattern.sub('', text)
+
+    # 0. 음성용 제목 주석(<!-- TTS-TITLE: ... -->)과 그 아래의 표를 찾아 처리합니다.
     table_pattern = re.compile(r'(?:^\s*<!--\s*TTS-TITLE:\s*(.*?)\s*-->\s*\n+)?((?:^\s*\|(?:.*?\|)+\s*\n)+)', re.MULTILINE)
     text = table_pattern.sub(process_table_with_context, text)
     
-    # [수정] 일반 텍스트용 음성 전용 주석 처리 시, 뒤에 공백을 추가하여 단어가 붙는 현상을 방지합니다.
-    tts_only_pattern = re.compile(r'<!--\s*TTS-ONLY:\s*(.*?)\s*-->')
-    text = tts_only_pattern.sub(r'\1 ', text)
+    # [개선] 음성으로만 나올 텍스트를 처리합니다. (두 가지 형식 모두 지원)
+    tts_only_comment_pattern = re.compile(r'<!--\s*TTS-ONLY:\s*(.*?)\s*-->')
+    text = tts_only_comment_pattern.sub(r'\1 ', text)
     
-    # 화면에만 표시될 텍스트(<span class="tts-skip">...</span>)를 제거합니다.
-    screen_only_pattern = re.compile(r'<span class="tts-skip">.*?</span>', re.DOTALL)
-    text = screen_only_pattern.sub('', text)
+    tts_only_span_pattern = re.compile(r'<span[^>]+class\s*=\s*["\'“”]tts-only["\'“”][^>]*>(.*?)</span>', re.DOTALL | re.IGNORECASE)
+    text = tts_only_span_pattern.sub(r'\1 ', text)
 
-    # 1. HTML 태그 제거
+    # 1. 이제 나머지 모든 HTML 태그를 제거합니다.
     text = re.sub(r'<[^>]+>', '', text)
     
     # 2. 링크 형식 제거 (예: [텍스트](링크))
@@ -78,8 +84,7 @@ def _clean_text_for_speech(text: str) -> str:
     text = re.sub(r'(^\s*\d+)\.\s+', r'\1 ', text, flags=re.MULTILINE)
     text = re.sub(r'^\s*[\*\-]\s+', '', text, flags=re.MULTILINE)
 
-    # 6. 자연스러운 쉼 추가 (더 명확한 띄어읽기를 위해 수정)
-    # 문단 바꿈은 긴 쉼(. . .)으로, 일반 줄바꿈은 짧은 쉼(쉼표)으로 변환합니다.
+    # 6. 자연스러운 쉼 추가
     text = text.replace('\n\n', '. . . ')
     text = text.replace('\n', ', ')
 

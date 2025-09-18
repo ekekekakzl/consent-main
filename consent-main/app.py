@@ -1,22 +1,19 @@
 import streamlit as st
 import os
-import google.generativeai as genai
 
 # 프로젝트의 다른 모듈들을 임포트합니다.
 from config import (
     USERNAME, PASSWORD,
     SECTIONS_SIDEBAR_MAP, SECTIONS_ORDER_KEYS
 )
-# gemini_utils는 음성 합성 기능이 없으므로 해당 함수는 제거합니다.
-from gemini_utils import configure_gemini, get_overall_consent_summary, get_gemini_response_from_combined_content
+# [수정] Gemini 모델 관련 함수 임포트 제거
+from gemini_utils import get_gemini_response_from_combined_content
 from ui_modules.login_page import render_login_page
 from ui_modules.profile_setup_page import render_profile_setup
-# ui_modules.section_page에서 각 페이지 렌더링 함수를 가져옵니다.
 from ui_modules.section_page import (
     render_necessity_page, render_method_page, render_considerations_page,
     render_side_effects_page, render_precautions_page, render_self_determination_page
 )
-from ui_modules.final_summary_page import render_final_summary_page
 
 st.set_page_config(layout="wide")
 
@@ -28,14 +25,7 @@ if os.path.exists(css_file_path):
 else:
     st.warning(f"CSS 파일을 찾을 수 없습니다: {css_file_path}")
 
-# Gemini API 키 설정
-try:
-    GEMINI_API_KEY = st.secrets["gemini_api_key"]
-    genai.configure(api_key=GEMINI_API_KEY)
-except KeyError as e:
-    st.error(f"⚠️ 설정 오류: Streamlit Secrets에서 '{e}' 키를 찾을 수 없습니다.")
-except Exception as e:
-    st.error(f"⚠️ Gemini API 설정 중 오류 발생: {e}")
+# [수정] Gemini API 키 설정 및 모델 관련 코드 제거
 
 # Streamlit Session State 초기화
 if 'logged_in' not in st.session_state:
@@ -46,42 +36,31 @@ if 'user_profile' not in st.session_state:
     st.session_state.user_profile = {}
 if 'current_page' not in st.session_state:
     st.session_state.current_page = "profile_setup"
-if 'model' not in st.session_state:
-    st.session_state.model = None
-if 'current_gemini_explanation' not in st.session_state:
-    st.session_state.current_gemini_explanation = ""
-if 'quiz_answers' not in st.session_state:
-    st.session_state.quiz_answers = {}
-if 'last_loaded_section_key' not in st.session_state:
-    st.session_state.last_loaded_section_key = None
-if 'current_faq_answer' not in st.session_state:
-    st.session_state.current_faq_answer = ""
-if 'overall_summary_content' not in st.session_state:
-    st.session_state.overall_summary_content = ""
-# [수정] edge-tts는 파일 기반이므로 audio_file_to_play 상태를 사용합니다.
 if 'audio_file_to_play' not in st.session_state:
     st.session_state.audio_file_to_play = None
+# [수정] 불필요한 세션 상태 초기화 제거
+# 'model', 'current_gemini_explanation', 'overall_summary_content' 등
 
 
 def render_final_chat_page():
     """
     모든 섹션 설명 완료 후 최종 페이지를 렌더링합니다.
     """
-    st.markdown("<h1 class='final-chat-title'>모든 설명을 완료했습니다! 🎉</h1>", unsafe_allow_html=True)
-    st.info("동의서에 대한 설명을 들어주셔서 감사합니다. 추가적으로 궁금한 점이 있다면 의료진에게 편하게 질문해주세요.")
+    st.markdown("<h1 class='final-chat-title'>모든 설명을 완료했습니다! 🎉 설명을 들어주셔서 감사합니다.</h1>", unsafe_allow_html=True)
     st.markdown("---")
 
-    col_back_to_last_section, col_summarize = st.columns(2)
-    with col_back_to_last_section:
-        if st.button("이전 단계", key="back_to_last_section_from_final", use_container_width=True):
+    col1, col2 = st.columns(2)
+
+    with col1:
+        if st.button("이전 단계로 돌아가기", key="back_to_last_section_from_final", use_container_width=True):
             last_section_key = SECTIONS_ORDER_KEYS[-1]
             st.session_state.current_page = last_section_key
             st.rerun()
-    with col_summarize:
-        if st.button("전체 동의서 요약하기", key="summarize_consent_button_from_final_chat", use_container_width=True):
-            st.session_state.current_page = "final_summary"
-            # [수정] 페이지 이동 시 오디오 상태를 초기화합니다.
-            st.session_state.audio_file_to_play = None 
+
+    with col2:
+        if st.button("환자 정보로 돌아가기", key="back_to_profile_from_final", use_container_width=True):
+            st.session_state.profile_setup_completed = False
+            st.session_state.current_page = "profile_setup"
             st.rerun()
 
 def main():
@@ -92,18 +71,7 @@ def main():
         render_login_page()
         return
 
-    if st.session_state.profile_setup_completed and st.session_state.model is None:
-        if st.session_state.user_profile:
-            st.session_state.model = configure_gemini(st.session_state.user_profile)
-            if st.session_state.model is None:
-                st.error("응답 모델을 초기화하는 데 실패했습니다.")
-                return
-        else:
-            st.error("사용자 정보를 불러오는 데 실패했습니다.")
-            st.session_state.profile_setup_completed = False
-            st.session_state.current_page = "profile_setup"
-            st.rerun()
-            return
+    # [수정] Gemini 모델 초기화 로직 제거
 
     # 사이드바 렌더링
     with st.sidebar:
@@ -148,15 +116,11 @@ def main():
         
         if current_page in page_functions:
             page_functions[current_page]()
-        elif current_page == "final_summary":
-            render_final_summary_page()
         elif current_page == "profile_setup":
             st.subheader("나의 정보를 입력해주세요")
             render_profile_setup()
-        else:
+        else: # final_chat 페이지
             render_final_chat_page()
-
-    # [제거] 오디오 플레이어는 이제 각 페이지 내부에서 렌더링되므로 이 코드는 필요 없습니다.
 
 if __name__ == "__main__":
     main()
