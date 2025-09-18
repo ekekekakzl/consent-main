@@ -1,6 +1,6 @@
 /* Streamlit 앱의 전체 기본 글꼴 크기 설정 */
 html, body, .stApp {
-    font-size: 20px;
+    font-size: 24px;
 }
 
 /* [최종 해결] 설명 텍스트의 배경을 강제로 투명하게 만드는 새로운 클래스 */
@@ -49,7 +49,7 @@ div.stNumberInput > div > div > input {
     border: 1px solid #a7d9ed;
     border-radius: 5px;
     padding: 15px;
-    font-size: 20px
+    font-size: 24px
 }
 
 /* 텍스트 영역 (text_area) 배경 및 글자색 변경 */
@@ -59,7 +59,7 @@ div.stTextArea > div > textarea {
     border: 1px solid #a7d9ed;
     border-radius: 5px;
     padding: 15px;
-    font-size: 20px;
+    font-size: 24px;
 }
 
 /* Selectbox (드롭다운) 배경 및 글자색 변경 */
@@ -137,3 +137,4 @@ div[data-testid="stAppViewContainer"] > .main > .block-container {
     display: none;
     /* 화면에서 완전히 사라지게 하는 CSS 속성입니다. */
 }
+
