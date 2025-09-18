@@ -147,5 +147,4 @@ def render_precautions_page():
     render_section_page(5, "수술 후 관리", "수술 후 지켜야 할 사항", "precautions")
 
 def render_self_determination_page():
-
     render_section_page(6, "주의사항과 자기결정권", "동의서 서명 전 알아야 되는 사항", "self_determination")
