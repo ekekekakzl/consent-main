@@ -86,7 +86,7 @@ def render_section_page(section_idx, title, description, section_key):
             for i, quiz_item in enumerate(section_quizzes):
                 quiz_answer_key = f"quiz_answer_{section_key}_{i}"
 
-                st.markdown(f"<div class='quiz-question-box'>문제 {i + 1}번. {quiz_item['question']}</div>", unsafe_allow_html=True)
+                st.markdown(f"<div class='quiz-question-box'>문제 {i + 1}. {quiz_item['question']}</div>", unsafe_allow_html=True)
 
                 cols = st.columns(2)
                 if cols[0].button("O", key=f"quiz_O_{quiz_answer_key}", use_container_width=True):
@@ -147,4 +147,5 @@ def render_precautions_page():
     render_section_page(5, "수술 후 관리", "수술 후 지켜야 할 사항", "precautions")
 
 def render_self_determination_page():
+
     render_section_page(6, "주의사항과 자기결정권", "동의서 서명 전 알아야 되는 사항", "self_determination")
