@@ -39,6 +39,9 @@ def render_section_page(section_idx, title, description, section_key):
     """
     각 동의서 섹션 페이지를 렌더링하는 핵심 함수.
     """
+    # 페이지가 로드될 때마다 스크롤을 맨 위로 이동시킵니다.
+    st.markdown("<script>window.scrollTo(0, 0);</script>", unsafe_allow_html=True)
+    
     if st.session_state.get('last_loaded_section_key') != section_key:
         st.session_state.current_gemini_explanation = ""
         st.session_state.quiz_answers = {}
@@ -53,18 +56,17 @@ def render_section_page(section_idx, title, description, section_key):
         st.session_state.current_gemini_explanation = explanation
         st.session_state.last_loaded_section_key = section_key
 
-    col_left, col_right = st.columns([0.7, 0.3], gap="large")
+    col_left, col_right = st.columns([0.6, 0.4], gap="large")
     with col_left:
-        title_col, play_col = st.columns([0.7, 0.3])
+        title_col, play_col = st.columns([0.6, 0.4])
         with title_col:
             st.markdown(f"### {title}")
             st.caption(description)
         with play_col:
             if st.session_state.current_gemini_explanation:
-                # on_click에서 audio_utils의 함수를 호출하고, 고유한 파일 이름을 전달합니다.
                 st.button("음성 재생 ▶️", key=f"play_section_explanation_{section_key}", use_container_width=True,
                           on_click=play_text_as_audio_callback, 
-                          args=(st.session_state.current_gemini_explanation, "section_audio.mp3"))
+                          args=(st.session_state.current_gemini_explanation, f"section_audio_{section_key}.mp3"))
 
         if section_key == "method":
             img_path = os.path.join(os.path.dirname(__file__), "../images/로봇수술이미지.png")
@@ -75,8 +77,11 @@ def render_section_page(section_idx, title, description, section_key):
         if explanation_text:
             st.markdown(explanation_text, unsafe_allow_html=True)
         
+        # [수정됨] 자동 재생이 반복적으로 실행되도록 st.empty()를 제거하고 로직을 단순화합니다.
         if st.session_state.get('audio_file_to_play'):
             st.audio(st.session_state.audio_file_to_play, autoplay=True)
+            # 오디오를 재생한 후, 상태를 초기화하여 다음 클릭 시에도 새롭게 재생되도록 합니다.
+            st.session_state.audio_file_to_play = None
 
     with col_right:
         st.subheader("💡 이해도 확인 OX 퀴즈")

@@ -24,7 +24,7 @@ def render_login_page():
         with title_col:
             # 제목을 이미지 옆에 배치하기 위해 margin-left를 0으로 유지하고 text-align을 제거
             # margin-top을 추가하여 글씨를 아래로 내립니다.
-            st.markdown('<h2 style="margin-bottom: 1.5rem; margin-top: 2rem;">로봇수술동의서 이해쑥쑥</h2>', unsafe_allow_html=True)
+            st.markdown('<h2 style="margin-bottom: 1.5rem; margin-top: 2rem;">로봇수술동의서 이해쏙쏙</h2>', unsafe_allow_html=True)
             
         username = st.text_input("아이디", key="login_username")
         # st.text.input을 st.text_input으로 수정

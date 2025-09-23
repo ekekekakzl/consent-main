@@ -38,8 +38,6 @@ if 'current_page' not in st.session_state:
     st.session_state.current_page = "profile_setup"
 if 'audio_file_to_play' not in st.session_state:
     st.session_state.audio_file_to_play = None
-# [수정] 불필요한 세션 상태 초기화 제거
-# 'model', 'current_gemini_explanation', 'overall_summary_content' 등
 
 
 def render_final_chat_page():
