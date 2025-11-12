@@ -1,12 +1,14 @@
 import streamlit as st
 import os
-import base64
-
-from config import SECTIONS_ORDER_KEYS
+from config import QUIZ_DATA, FAQ_DATA, SECTIONS_ORDER_KEYS
 from gemini_utils import get_gemini_response_from_combined_content
+# 새로 만든 오디오 유틸리티 파일에서 콜백 함수를 가져옵니다.
 from ui_modules.audio_utils import play_text_as_audio_callback
 
 def render_section_navigation_buttons(section_idx, parent_column):
+    """
+    섹션 간 이동을 위한 '이전 단계' 및 '다음 단계' 버튼을 렌더링합니다.
+    """
     current_page_key = st.session_state.current_page
     current_page_key_index = SECTIONS_ORDER_KEYS.index(current_page_key)
 
@@ -34,17 +36,17 @@ def render_section_navigation_buttons(section_idx, parent_column):
                     st.rerun()
 
 def render_section_page(section_idx, title, description, section_key):
+    """
+    각 동의서 섹션 페이지를 렌더링하는 핵심 함수.
+    """
+    # 페이지가 로드될 때마다 스크롤을 맨 위로 이동시킵니다.
     st.markdown("<script>window.scrollTo(0, 0);</script>", unsafe_allow_html=True)
-    
-    # [❗️수정] 오디오 플레이어를 위한 st.empty() placeholder를 페이지 상단에 둡니다.
-    audio_placeholder = st.empty()
     
     if st.session_state.get('last_loaded_section_key') != section_key:
         st.session_state.current_gemini_explanation = ""
+        st.session_state.quiz_answers = {}
+        st.session_state.current_faq_answer = ""
         st.session_state.audio_file_to_play = None
-    
-    # [❗️수정] 페이지 로드 시 오디오를 재생하던 로직을 제거합니다.
-    # (버튼 클릭 시에만 재생하도록 변경)
 
     if not st.session_state.current_gemini_explanation:
         explanation = get_gemini_response_from_combined_content(
@@ -52,87 +54,102 @@ def render_section_page(section_idx, title, description, section_key):
             current_section_title=title
         )
         st.session_state.current_gemini_explanation = explanation
-    st.session_state.last_loaded_section_key = section_key
+        st.session_state.last_loaded_section_key = section_key
 
-    col_left, col_right = st.columns([0.4, 0.6], gap="large")
-
+    col_left, col_right = st.columns([0.6, 0.4], gap="large")
     with col_left:
-        if section_key == "method":
-            img_path = os.path.join(os.path.dirname(__file__), "..", "images", "로봇수술이미지.png")
-            if os.path.exists(img_path):
-                st.image(img_path, caption="[로봇수술 시스템 구성 요소]", use_container_width=True)
-            else:
-                st.warning(f"이미지 파일을 찾을 수 없습니다: {img_path}")
-        else:
-            st.empty()
-
-    with col_right:
         title_col, play_col = st.columns([0.6, 0.4])
         with title_col:
             st.markdown(f"### {title}")
             st.caption(description)
         with play_col:
             if st.session_state.current_gemini_explanation:
-                
-                # [❗️수정] on_click 대신 if st.button()을 사용합니다.
-                if st.button("음성 재생 ▶️", key=f"play_section_explanation_{section_key}", use_container_width=True):
-                    
-                    audio_filename = f"section_audio_{section_key}.mp3"
-                    
-                    # 1. 콜백을 호출하여 음성 파일 생성 및 상태 설정
-                    play_text_as_audio_callback(
-                        st.session_state.current_gemini_explanation, 
-                        audio_filename
-                    )
-                    
-                    # 2. st.rerun() 대신, 생성된 파일을 직접 읽고 base64로 변환합니다.
-                    audio_file_path = st.session_state.get('audio_file_to_play')
-                    
-                    if audio_file_path and os.path.exists(audio_file_path):
-                        try:
-                            with open(audio_file_path, "rb") as f:
-                                data = f.read()
-                            
-                            b64 = base64.b64encode(data).decode()
-                            
-                            md = f"""
-                                <audio controls autoplay="true">
-                                <source src="data:audio/mp3;base64,{b64}" type="audio/mp3">
-                                Your browser does not support the audio element.
-                                </audio>
-                                """
-                            
-                            # 3. st.empty() placeholder에 오디오 플레이어를 렌더링합니다.
-                            audio_placeholder.markdown(md, unsafe_allow_html=True)
-                            
-                            # 4. 재생 후 상태를 None으로 리셋하여 반복 재생 방지
-                            st.session_state.audio_file_to_play = None
+                st.button("음성 재생 ▶️", key=f"play_section_explanation_{section_key}", use_container_width=True,
+                          on_click=play_text_as_audio_callback, 
+                          args=(st.session_state.current_gemini_explanation, f"section_audio_{section_key}.mp3"))
 
-                        except Exception as e:
-                            st.error(f"오디오 재생 중 오류 발생: {e}")
-                            st.session_state.audio_file_to_play = None
-                    else:
-                        st.error("음성 파일 생성 후 즉시 읽는 데 실패했습니다.")
+        if section_key == "method":
+            img_path = os.path.join(os.path.dirname(__file__), "../images/로봇수술이미지.png")
+            if os.path.exists(img_path):
+                st.image(img_path, caption="[로봇수술 시스템 구성 요소]", use_container_width=True)
 
         explanation_text = st.session_state.get('current_gemini_explanation', '')
         if explanation_text:
             st.markdown(explanation_text, unsafe_allow_html=True)
         
+        # [수정됨] 자동 재생이 반복적으로 실행되도록 st.empty()를 제거하고 로직을 단순화합니다.
+        if st.session_state.get('audio_file_to_play'):
+            st.audio(st.session_state.audio_file_to_play, autoplay=True)
+            # 오디오를 재생한 후, 상태를 초기화하여 다음 클릭 시에도 새롭게 재생되도록 합니다.
+            st.session_state.audio_file_to_play = None
+
+    with col_right:
+        st.subheader("💡 이해도 확인 OX 퀴즈")
+        section_quizzes = QUIZ_DATA.get(section_key, [])
+
+        if section_quizzes:
+            for i, quiz_item in enumerate(section_quizzes):
+                quiz_answer_key = f"quiz_answer_{section_key}_{i}"
+
+                st.markdown(f"<div class='quiz-question-box'>문제 {i + 1}. {quiz_item['question']}</div>", unsafe_allow_html=True)
+
+                cols = st.columns(2)
+                if cols[0].button("O", key=f"quiz_O_{quiz_answer_key}", use_container_width=True):
+                    st.session_state.quiz_answers[quiz_answer_key] = "O"
+                    st.rerun()
+                if cols[1].button("X", key=f"quiz_X_{quiz_answer_key}", use_container_width=True):
+                    st.session_state.quiz_answers[quiz_answer_key] = "X"
+                    st.rerun()
+
+                if quiz_answer_key in st.session_state.quiz_answers:
+                    user_answer = st.session_state.quiz_answers[quiz_answer_key]
+                    if user_answer == quiz_item['answer']:
+                        st.success(f"정답입니다! 🎉 {quiz_item['explanation']}")
+                    else:
+                        st.error(f"아쉽지만 틀렸어요. 😥 정답은 {quiz_item['answer']}입니다. {quiz_item['explanation']}")
+        else:
+            st.info("이 섹션에 대한 퀴즈가 아직 준비되지 않았습니다.")
+        st.markdown("---")
+
+        st.subheader("🤔 자주 묻는 질문 (FAQ)")
+        section_faqs = FAQ_DATA.get(section_key, [])
+
+        if section_faqs:
+            st.markdown("<div class='secondary-button-wrapper'>", unsafe_allow_html=True)
+            for i, faq_item in enumerate(section_faqs):
+                if st.button(faq_item["question"], key=f"faq_q_{section_key}_{i}", use_container_width=True):
+                    if st.session_state.get('current_faq_answer') == faq_item["answer"]:
+                        st.session_state.current_faq_answer = ""
+                    else:
+                        st.session_state.current_faq_answer = faq_item["answer"]
+                    st.rerun()
+            st.markdown("</div>", unsafe_allow_html=True)
+        else:
+            st.info("이 섹션에 대한 자주 묻는 질문이 아직 준비되지 않았습니다.")
+
+        if st.session_state.get('current_faq_answer'):
+            st.markdown(f"<div class='faq-answer-box'><strong>답변:</strong> {st.session_state.current_faq_answer}</div>", unsafe_allow_html=True)
+            if st.button("답변 닫기", key=f"clear_faq_answer_{section_key}"):
+                st.session_state.current_faq_answer = ""
+                st.rerun()
+
         st.markdown("---")
         render_section_navigation_buttons(section_idx, col_right)
 
-
 def render_necessity_page():
-    render_section_page(1, "필요성", "[왜 수술을 해야 하나요?]", "necessity")
+    render_section_page(1, "필요성", "로봇수술이 필요한 이유", "necessity")
 
 def render_method_page():
-    render_section_page(2, "방법", "[로봇수술은 어떻게 진행되나요?]", "method")
+    render_section_page(2, "방법", "로봇 수술에 대한 설명과 수술 과정", "method")
 
 def render_considerations_page():
-    render_section_page(3, "고려 사항", "[알아두어야 할 점] ", "considerations")
+    render_section_page(3, "고려 사항", "로봇수술 시 고려할 사항", "considerations")
 
 def render_side_effects_page():
-    render_section_page(4, "합병증", "[생길 수 있는 합병증]", "side_effects")
+    render_section_page(4, "합병증", "로봇수술로 발생할 수 있는 합병증", "side_effects")
 
 def render_precautions_page():
-    render_section_page(5, "수술 후 관리", "[생활 관리 방법]", "precautions")
+    render_section_page(5, "수술 후 관리", "수술 후 지켜야 할 사항", "precautions")
+
+def render_self_determination_page():
+    render_section_page(6, "주의사항과 자기결정권", "동의서 서명 전 알아야 되는 사항", "self_determination")

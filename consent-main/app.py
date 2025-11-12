@@ -6,13 +6,13 @@ from config import (
     USERNAME, PASSWORD,
     SECTIONS_SIDEBAR_MAP, SECTIONS_ORDER_KEYS
 )
-
+# [수정] Gemini 모델 관련 함수 임포트 제거
+from gemini_utils import get_gemini_response_from_combined_content
 from ui_modules.login_page import render_login_page
 from ui_modules.profile_setup_page import render_profile_setup
-# 'render_self_determination_page' 임포트 제거
 from ui_modules.section_page import (
     render_necessity_page, render_method_page, render_considerations_page,
-    render_side_effects_page, render_precautions_page
+    render_side_effects_page, render_precautions_page, render_self_determination_page
 )
 
 st.set_page_config(layout="wide")
@@ -101,13 +101,13 @@ def main():
         st.subheader("나의 정보를 입력해주세요")
         render_profile_setup()
     else:
-        # 'self_determination' 항목 제거
         page_functions = {
             "necessity": render_necessity_page,
             "method": render_method_page,
             "considerations": render_considerations_page,
             "side_effects": render_side_effects_page,
             "precautions": render_precautions_page,
+            "self_determination": render_self_determination_page,
         }
         
         current_page = st.session_state.get("current_page", "profile_setup")
