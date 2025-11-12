@@ -2,9 +2,6 @@ import streamlit as st
 import os
 import sys
 
-# [❗️추가] 프로젝트 루트 디렉토리를 sys.path에 추가하여
-# 서브 모듈(ui_modules/*)이 루트의 모듈(config.py, audio_util.py)을 
-# 안정적으로 임포트할 수 있도록 합니다.
 project_root = os.path.dirname(os.path.abspath(__file__))
 if project_root not in sys.path:
     sys.path.append(project_root)
