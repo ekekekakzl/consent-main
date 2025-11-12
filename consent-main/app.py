@@ -144,15 +144,6 @@ def render_section_page(key):
             error_message = f"**이미지 로딩 실패:** 경로의 파일을 찾을 수 없거나 열 수 없습니다. 오류: {e}"
             st.error(f"{error_message}")
             st.markdown("<div style='height: 300px; border: 1px dashed #ccc; padding: 20px; text-align: center;'>이미지 로딩 오류</div>", unsafe_allow_html=True)
-        
-        finally:
-             # 💡 디버깅 정보: 시도된 경로를 항상 표시하여 사용자가 경로 문제를 직접 확인할 수 있도록 합니다.
-             st.markdown("---")
-             st.caption("🚨 **이미지 경로 디버깅 정보 (오류 시 확인)**")
-             st.code(f"현재 디렉토리 (app.py 위치): {current_dir}", language="text")
-             st.code(f"상대 경로 (config.py에서 지정): {relative_image_path}", language="text")
-             st.code(f"시도된 절대 파일 경로 (os.path.join 결과): {absolute_image_path}", language="text")
-
 
     with col_content:
         st.markdown(explanation_html, unsafe_allow_html=True)
