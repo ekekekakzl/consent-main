@@ -61,21 +61,15 @@ def play_audio():
         st.error("음성으로 변환할 설명 텍스트가 없습니다.")
         return
     
-    # Surgery type is stored with the full name (e.g., "로봇보조 자궁절제술").
     op_full_name = st.session_state.user_profile.get("surgery_type", "로봇보조 자궁절제술")
-    # Normalize the full name to a short English prefix for the filename.
     op_prefix = get_normalized_op_prefix(op_full_name) 
     
-    # 💡 파일 경로 설정: 'static_audio' 디렉토리를 사용합니다.
     output_filename = os.path.join("static_audio", f"{op_prefix}_{section_key}.mp3")
 
-    # 💡 파일이 존재하는지 확인합니다.
     if os.path.exists(output_filename):
-        # 파일이 존재하면 바로 재생 상태로 설정합니다.
         st.session_state.audio_file_to_play = output_filename
         st.toast("🔊 오디오 파일이 준비되었습니다! (정적 파일 재생)", icon="✅")
     else:
-        # 파일이 존재하지 않는 경우, 사용자에게 해당 파일이 필요함을 알립니다.
         st.error(f"""
         **오디오 파일 없음 오류:**
         
@@ -85,7 +79,6 @@ def play_audio():
             해당 경로에 실제 MP3 파일을 넣어주세요.
         """)
         st.session_state.audio_file_to_play = None
-        # 유효하지 않은 파일을 생성하는 시뮬레이션 코드는 제거되었습니다.
 
 
 def render_section_page(key):
@@ -120,15 +113,39 @@ def render_section_page(key):
 
     col_img, col_content = st.columns([1, 2.5])
     
+    relative_image_path = None
+    absolute_image_path = None
+    
     with col_img:
-        
+        # 💡 이미지 로딩 로직을 더 강력하게 수정하여 Streamlit 내부 오류도 잡아냅니다.
         try:
+            # 1. 경로 맵에서 상대 경로를 가져옵니다. (KeyError 방지)
             relative_image_path = IMAGE_FILE_MAP[op][key]
-            # Streamlit이 로컬 파일을 찾을 수 있도록 상대 경로를 사용합니다.
-            st.image(relative_image_path, use_container_width=True)
-        except (KeyError, FileNotFoundError):
-            st.warning("해당 수술/섹션에 대한 이미지 파일 경로를 찾을 수 없거나 파일이 존재하지 않습니다.")
-            st.markdown("<div style='height: 300px; border: 1px dashed #ccc; padding: 20px; text-align: center;'>이미지 준비 중</div>", unsafe_allow_html=True)
+            
+            # 2. 현재 파일 위치를 기준으로 절대 경로를 구성합니다. (배포 환경에서 더 안전함)
+            current_dir = os.path.dirname(__file__)
+            absolute_image_path = os.path.join(current_dir, relative_image_path)
+            
+            # 3. 절대 경로를 사용하여 st.image를 호출합니다.
+            st.image(absolute_image_path, use_container_width=True)
+            
+        except KeyError:
+            st.warning(f"설정 파일(config.py)에 '{op}' 수술 또는 '{key}' 섹션에 대한 **이미지 경로가 정의되어 있지 않습니다.**")
+            st.markdown("<div style='height: 300px; border: 1px dashed #ccc; padding: 20px; text-align: center;'>이미지 준비 중 (경로 정의 필요)</div>", unsafe_allow_html=True)
+
+        except Exception as e:
+            # FileNotFoundError나 MediaFileStorageError 등 모든 파일 관련 오류를 처리합니다.
+            error_message = f"**이미지 로딩 실패:** 경로의 파일을 찾을 수 없거나 열 수 없습니다. 오류: {e}"
+            st.error(f"{error_message}")
+            st.markdown("<div style='height: 300px; border: 1px dashed #ccc; padding: 20px; text-align: center;'>이미지 로딩 오류</div>", unsafe_allow_html=True)
+        
+        finally:
+             # 💡 디버깅 정보: 시도된 경로를 항상 표시하여 사용자가 경로 문제를 직접 확인할 수 있도록 합니다.
+             st.markdown("---")
+             st.caption("🚨 **이미지 디버깅 정보 (오류 시 확인)**")
+             st.code(f"상대 경로: {relative_image_path}", language="text")
+             st.code(f"시도된 절대 경로: {absolute_image_path}", language="text")
+
 
     with col_content:
         st.markdown(explanation_html, unsafe_allow_html=True)
@@ -159,8 +176,6 @@ def render_section_page(key):
                 st.button("다음 단계 ➡️", type="primary", key="next_button", on_click=set_section, args=(next_key,), use_container_width=True)
             else:
                 st.button("설명 완료 🎉", type="primary", key="finish_button", on_click=set_section, args=("final_chat",), use_container_width=True)
-
-    # 💡 기존 하단 오디오 플레이어 로직 제거됨.
 
 
 def render_final_chat_page():
@@ -219,7 +234,7 @@ def main():
         st.session_state.last_loaded_section_key = None
         st.session_state.last_loaded_surgery_type = None
         st.session_state.current_gemini_explanation = None
-        st.session_state.audio_file_to_play = None # 오디오 상태 초기화
+        st.session_state.audio_file_to_play = None
 
         st.markdown("<h1 class='main-app-title'>로봇수술 동의서 설명 도우미 🤖</h1>", unsafe_allow_html=True)
         st.markdown("환자분의 정보를 바탕으로, 로봇수술 동의서의 내용을 이해하기 쉽게 설명해 드립니다.")
