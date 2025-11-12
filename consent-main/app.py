@@ -1,133 +1,139 @@
 import streamlit as st
 import os
-import base64
-# [❗️제거] 불필요한 sys.path 관련 코드를 모두 제거하고, app.py의 경로 설정에 의존합니다.
-# import sys
-# # 현재 파일 (ui_modules/section_page.py)의 디렉토리에서 두 단계 위 (프로젝트 루트)로 이동
-# project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
-# if project_root not in sys.path:
-#     sys.path.append(project_root)
+import sys
+
+# [❗️추가] 프로젝트 루트 디렉토리를 sys.path에 추가하여
+# 서브 모듈(ui_modules/*)이 루트의 모듈(config.py, audio_util.py)을 
+# 안정적으로 임포트할 수 있도록 합니다.
+project_root = os.path.dirname(os.path.abspath(__file__))
+if project_root not in sys.path:
+    sys.path.append(project_root)
 
 
-from config import SECTIONS_ORDER_KEYS
-from gemini_utils import get_gemini_response_from_combined_content
-# [❗️수정] 상대 경로 임포트로 다시 변경하여 Streamlit 환경의 경로 문제를 해결합니다.
-from ..audio_util import play_audio_button 
+# 프로젝트의 다른 모듈들을 임포트합니다.
+from config import (
+    USERNAME, PASSWORD,
+    SECTIONS_SIDEBAR_MAP, SECTIONS_ORDER_KEYS
+)
+
+from ui_modules.login_page import render_login_page
+from ui_modules.profile_setup_page import render_profile_setup
+# 'render_self_determination_page' 임포트 제거
+from ui_modules.section_page import (
+    render_necessity_page, render_method_page, render_considerations_page,
+    render_side_effects_page, render_precautions_page
+)
+
+st.set_page_config(layout="wide")
+
+# CSS 파일 로드
+css_file_path = os.path.join(os.path.dirname(__file__), "style", "styles.css")
+if os.path.exists(css_file_path):
+    with open(css_file_path, 'r', encoding='utf-8') as f:
+        st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
+else:
+    st.warning(f"CSS 파일을 찾을 수 없습니다: {css_file_path}")
+
+# [수정] Gemini API 키 설정 및 모델 관련 코드 제거
+
+# Streamlit Session State 초기화
+if 'logged_in' not in st.session_state:
+    st.session_state["logged_in"] = False
+if 'profile_setup_completed' not in st.session_state:
+    st.session_state.profile_setup_completed = False
+if 'user_profile' not in st.session_state:
+    st.session_state.user_profile = {}
+if 'current_page' not in st.session_state:
+    st.session_state.current_page = "profile_setup"
+# [❗️수정] 'audio_file_to_play' 초기화 코드를 제거합니다.
+# if 'audio_file_to_play' not in st.session_state:
+#     st.session_state.audio_file_to_play = None
 
 
-# [❗️제거] BASE_AUDIO_PATH는 이제 audio_util.py에서 관리합니다.
-# [❗️제거] _on_tts_click 함수는 제거합니다.
-
-def _render_section_navigation_buttons_inline(section_idx):
+def render_final_chat_page():
     """
-    네비게이션 버튼을 인라인으로 렌더링합니다. 
+    모든 섹션 설명 완료 후 최종 페이지를 렌더링합니다.
     """
-    current_page_key = st.session_state.current_page
-    current_page_key_index = SECTIONS_ORDER_KEYS.index(current_page_key)
+    st.markdown("<h1 class='final-chat-title'>모든 설명을 완료했습니다! 🎉 설명을 들어주셔서 감사합니다.</h1>", unsafe_allow_html=True)
+    st.markdown("---")
 
-    # 네비게이션 버튼을 위한 3개의 컬럼을 생성합니다.
-    nav_cols = st.columns([1, 1, 1])
+    col1, col2 = st.columns(2)
 
-    # 이전 단계 버튼
-    with nav_cols[0]:
-        if current_page_key_index > 0:
-            if st.button("⬅️ 이전 단계", key=f"prev_section_{section_idx}", use_container_width=True):
-                st.session_state.current_page = SECTIONS_ORDER_KEYS[current_page_key_index - 1]
-                st.rerun()
-        else:
-            if st.button("⬅️ 이전 단계", key=f"back_to_profile_{section_idx}", use_container_width=True):
-                st.session_state.profile_setup_completed = False
-                st.session_state.current_page = "profile_setup"
-                st.rerun()
+    with col1:
+        if st.button("이전 단계로 돌아가기", key="back_to_last_section_from_final", use_container_width=True):
+            last_section_key = SECTIONS_ORDER_KEYS[-1]
+            st.session_state.current_page = last_section_key
+            st.rerun()
 
-    # (중앙 컬럼은 비워둡니다)
+    with col2:
+        if st.button("환자 정보로 돌아가기", key="back_to_profile_from_final", use_container_width=True):
+            st.session_state.profile_setup_completed = False
+            st.session_state.current_page = "profile_setup"
+            st.rerun()
 
-    # 다음 단계 / 완료 버튼
-    with nav_cols[2]:
-        if current_page_key_index < len(SECTIONS_ORDER_KEYS) - 1:
-            if st.button("다음 단계 ➡️", key=f"next_section_{section_idx}", use_container_width=True, type="primary"):
-                st.session_state.current_page = SECTIONS_ORDER_KEYS[current_page_key_index + 1]
-                st.rerun()
-        else:
-            if st.button("설명 완료 ✅", key=f"finish_sections", use_container_width=True, type="primary"):
-                st.session_state.current_page = "final_chat"
-                st.rerun()
+def main():
+    """
+    Streamlit 앱의 메인 함수. 페이지 라우팅 및 상태 관리를 담당합니다.
+    """
+    if not st.session_state.get("logged_in"):
+        render_login_page()
+        return
 
+    # [수정] Gemini 모델 초기화 로직 제거
 
-def render_section_page(section_idx, title, description, section_key):
-    st.markdown("<script>window.scrollTo(0, 0);</script>", unsafe_allow_html=True)
-    
-    # 1. 콘텐츠 초기화
-    # 섹션이 변경되면 이전 텍스트와 오디오 파일을 지웁니다.
-    if st.session_state.get('last_loaded_section_key') != section_key:
-        st.session_state.current_gemini_explanation = ""
-        # [❗️제거] 오디오 재생 요청 상태 리셋 코드는 audio_util.py 내부에서 관리됩니다.
-    
-    # 2. 오디오 파일 재생 로직 (audio_util.py가 모든 것을 처리하도록 변경)
-    
-    # 3. 텍스트 생성
-    if not st.session_state.get('current_gemini_explanation'):
-        explanation = get_gemini_response_from_combined_content(
-            user_profile=st.session_state.user_profile,
-            current_section_title=title
-        )
-        st.session_state.current_gemini_explanation = explanation
-    st.session_state.last_loaded_section_key = section_key
+    # 사이드바 렌더링
+    with st.sidebar:
+        st.markdown("<h2 class='sidebar-menu-title'>메뉴</h2>", unsafe_allow_html=True)
+        if st.button("👤 환자 정보 입력", key="profile_input_button"):
+            st.session_state.profile_setup_completed = False
+            st.session_state.current_page = "profile_setup"
+            st.rerun()
 
-    # 4. 레이아웃
-    col_left, col_right = st.columns([0.4, 0.6], gap="large")
-
-    with col_left:
-        if section_key == "method":
-            # 파일 경로 탐색 로직: `ui_modules` 폴더 기준으로 상위 폴더의 `images`를 찾습니다.
-            relative_img_path = os.path.join(os.path.dirname(__file__), "..", "images", "로봇수술이미지.png")
-            
-            if os.path.exists(relative_img_path):
-                st.image(relative_img_path, caption="[로봇수술 시스템 구성 요소]", use_container_width=True)
-            else:
-                # 파일이 없을 경우, Streamlit 앱의 루트 경로에서 다시 시도해봅니다.
-                alt_img_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "images", "로봇수술이미지.png")
-                if os.path.exists(alt_img_path):
-                     st.image(alt_img_path, caption="[로봇수술 시스템 구성 요소]", use_container_width=True)
-                else:
-                    st.warning(f"이미지 파일을 찾을 수 없습니다: {relative_img_path} 또는 {alt_img_path}")
-        else:
-            st.empty()
-
-    with col_right:
-        title_col, play_col = st.columns([0.6, 0.4])
-        with title_col:
-            st.markdown(f"### {title}")
-            st.caption(description)
-        with play_col:
-            if st.session_state.current_gemini_explanation:
-                # audio_util.play_audio_button 함수를 직접 호출합니다.
-                play_audio_button(
-                    raw_html_content=st.session_state.current_gemini_explanation,
-                    key=f"play_section_explanation_{section_key}"
-                )
-
-        explanation_text = st.session_state.get('current_gemini_explanation', '')
-        if explanation_text:
-            st.markdown(explanation_text, unsafe_allow_html=True)
+        if st.session_state.profile_setup_completed:
+            st.markdown("---")
+            st.subheader("진행 단계")
+            for key, info in SECTIONS_SIDEBAR_MAP.items():
+                is_active = st.session_state.current_page == key
+                label = f"**{info['idx']}. {info['title']}**" if is_active else f"{info['idx']}. {info['title']}"
+                if st.button(label, key=f"sidebar_nav_{key}"):
+                    st.session_state.current_page = key
+                    st.rerun()
         
         st.markdown("---")
-    
-    # 네비게이션 버튼을 전체 메인 영역 하단에 독립적으로 렌더링합니다.
-    _render_section_navigation_buttons_inline(section_idx)
+        if st.button("로그아웃", key="logout_button_sidebar"):
+            st.session_state.clear()
+            st.rerun()
 
+    # 메인 페이지 콘텐츠 라우팅
+    if not st.session_state.profile_setup_completed:
+        st.markdown("<h1 class='main-app-title'>로봇수술 동의서 설명 도우미 🤖</h1>", unsafe_allow_html=True)
+        st.markdown("환자분의 정보를 바탕으로, 로봇수술 동의서의 내용을 이해하기 쉽게 설명해 드립니다.")
+        st.subheader("나의 정보를 입력해주세요")
+        render_profile_setup()
+    else:
+        # 'self_determination' 항목 제거
+        page_functions = {
+            "necessity": render_necessity_page,
+            "method": render_method_page,
+            "considerations": render_considerations_page,
+            "side_effects": render_side_effects_page,
+            "precautions": render_precautions_page,
+        }
+        
+        current_page = st.session_state.get("current_page", "profile_setup")
+        
+        if current_page in page_functions:
+            page_functions[current_page]()
+        elif current_page == "profile_setup":
+            st.subheader("나의 정보를 입력해주세요")
+            render_profile_setup()
+        # [수정] 'else:' 대신 'elif'를 사용하여 명시적으로 final_chat 페이지를 확인합니다.
+        elif current_page == "final_chat":
+            render_final_chat_page()
+        else:
+            # 예기치 않은 페이지 상태일 경우 기본 페이지로 리디렉션
+            st.session_state.current_page = "profile_setup"
+            st.rerun()
 
-def render_necessity_page():
-    render_section_page(1, "필요성", "[왜 수술을 해야 하나요?]", "necessity")
-
-def render_method_page():
-    render_section_page(2, "방법", "[로봇수술은 어떻게 진행되나요?]", "method")
-
-def render_considerations_page():
-    render_section_page(3, "고려 사항", "[알아두어야 할 점] ", "considerations")
-
-def render_side_effects_page():
-    render_section_page(4, "합병증", "[생길 수 있는 합병증]", "side_effects")
-
-def render_precautions_page():
-    render_section_page(5, "수술 후 관리", "[생활 관리 방법]", "precautions")
+if __name__ == "__main__":
+    main()
