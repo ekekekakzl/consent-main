@@ -73,7 +73,7 @@ def play_audio():
     if os.path.exists(absolute_filename):
         # 파일이 존재하면 바로 재생 상태로 설정합니다.
         st.session_state.audio_file_to_play = absolute_filename
-        st.toast("🔊 오디오 파일이 준비되었습니다! (정적 파일 재생)", icon="✅")
+
     else:
         # 파일이 존재하지 않는 경우, 사용자에게 해당 파일이 필요함을 알립니다.
         st.error(f"""
@@ -156,14 +156,6 @@ def render_section_page(key):
             **시도된 절대 경로:** `{absolute_image_path}`
             """)
             st.markdown("<div style='height: 300px; border: 1px dashed #ccc; padding: 20px; text-align: center;'>이미지 로딩 오류</div>", unsafe_allow_html=True)
-        
-        finally:
-             # 💡 디버깅 정보: 시도된 경로를 항상 표시하여 사용자가 경로 문제를 직접 확인할 수 있도록 합니다.
-             st.markdown("---")
-             st.caption("🚨 **이미지 경로 디버깅 정보 (오류 시 확인)**")
-             st.code(f"현재 디렉토리 (app.py 위치): {current_dir}", language="text")
-             st.code(f"상대 경로 (config.py에서 지정): {relative_image_path}", language="text")
-             st.code(f"시도된 절대 파일 경로 (os.path.join 결과): {absolute_image_path}", language="text")
 
 
     with col_content:
