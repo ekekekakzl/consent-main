@@ -64,12 +64,16 @@ def play_audio():
     op_full_name = st.session_state.user_profile.get("surgery_type", "로봇보조 자궁절제술")
     op_prefix = get_normalized_op_prefix(op_full_name) 
     
+    # 💡 파일 경로 설정: 'static_audio' 디렉토리를 사용합니다.
     output_filename = os.path.join("static_audio", f"{op_prefix}_{section_key}.mp3")
 
+    # 💡 파일이 존재하는지 확인합니다.
     if os.path.exists(output_filename):
+        # 파일이 존재하면 바로 재생 상태로 설정합니다.
         st.session_state.audio_file_to_play = output_filename
         st.toast("🔊 오디오 파일이 준비되었습니다! (정적 파일 재생)", icon="✅")
     else:
+        # 파일이 존재하지 않는 경우, 사용자에게 해당 파일이 필요함을 알립니다.
         st.error(f"""
         **오디오 파일 없음 오류:**
         
@@ -113,17 +117,19 @@ def render_section_page(key):
 
     col_img, col_content = st.columns([1, 2.5])
     
-    relative_image_path = None
-    absolute_image_path = None
-    
     with col_img:
         # 💡 이미지 로딩 로직을 더 강력하게 수정하여 Streamlit 내부 오류도 잡아냅니다.
+        relative_image_path = None
+        absolute_image_path = None # 절대 경로 변수 추가
+        
+        # 💡 app.py가 실행되는 기본 경로를 먼저 확보합니다.
+        current_dir = os.path.dirname(__file__) 
+        
         try:
             # 1. 경로 맵에서 상대 경로를 가져옵니다. (KeyError 방지)
             relative_image_path = IMAGE_FILE_MAP[op][key]
             
             # 2. 현재 파일 위치를 기준으로 절대 경로를 구성합니다. (배포 환경에서 더 안전함)
-            current_dir = os.path.dirname(__file__)
             absolute_image_path = os.path.join(current_dir, relative_image_path)
             
             # 3. 절대 경로를 사용하여 st.image를 호출합니다.
@@ -142,9 +148,10 @@ def render_section_page(key):
         finally:
              # 💡 디버깅 정보: 시도된 경로를 항상 표시하여 사용자가 경로 문제를 직접 확인할 수 있도록 합니다.
              st.markdown("---")
-             st.caption("🚨 **이미지 디버깅 정보 (오류 시 확인)**")
-             st.code(f"상대 경로: {relative_image_path}", language="text")
-             st.code(f"시도된 절대 경로: {absolute_image_path}", language="text")
+             st.caption("🚨 **이미지 경로 디버깅 정보 (오류 시 확인)**")
+             st.code(f"현재 디렉토리 (app.py 위치): {current_dir}", language="text")
+             st.code(f"상대 경로 (config.py에서 지정): {relative_image_path}", language="text")
+             st.code(f"시도된 절대 파일 경로 (os.path.join 결과): {absolute_image_path}", language="text")
 
 
     with col_content:
@@ -234,7 +241,7 @@ def main():
         st.session_state.last_loaded_section_key = None
         st.session_state.last_loaded_surgery_type = None
         st.session_state.current_gemini_explanation = None
-        st.session_state.audio_file_to_play = None
+        st.session_state.audio_file_to_play = None # 오디오 상태 초기화
 
         st.markdown("<h1 class='main-app-title'>로봇수술 동의서 설명 도우미 🤖</h1>", unsafe_allow_html=True)
         st.markdown("환자분의 정보를 바탕으로, 로봇수술 동의서의 내용을 이해하기 쉽게 설명해 드립니다.")
