@@ -238,7 +238,7 @@ def main():
         st.session_state.audio_file_to_play = None # 오디오 상태 초기화
 
         st.markdown("<h1 class='main-app-title'>로봇수술 동의서 설명 도우미 🤖</h1>", unsafe_allow_html=True)
-        st.markdown("환자분의 정보를 바탕으로, 로봇수술 동의서의 내용을 이해하기 쉽게 설명해 드립니다.")
+        st.markdown("로봇수술 동의서의 내용을 이해하기 쉽게 설명해 드립니다.")
         st.subheader("나의 정보를 입력해주세요")
         render_profile_setup()
     else:
