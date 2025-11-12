@@ -1,82 +1,122 @@
 import streamlit as st
-import edge_tts
 import asyncio
+import edge_tts
 import re
-import textwrap
-import os # [❗️수정] 1. os 모듈을 임포트합니다.
+import os
+import tempfile
+from typing import Optional
 
-def run_async(coro):
-    """Streamlit과 같은 동기 환경에서 비동기 코드를 실행하기 위한 헬퍼 함수."""
-    try:
-        loop = asyncio.get_running_loop()
-    except RuntimeError:
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-    return loop.run_until_complete(coro)
+# 1. 텍스트 정리 함수: TTS 전용 텍스트 추출 및 불필요한 HTML/마크다운 태그 제거
+def extract_tts_text(html_content: str) -> str:
+    """
+    HTML 마크업이 포함된 설명 내용에서 TTS용 텍스트를 추출하고 정리합니다.
+    - 'tts-only' span 태그 내용이 있으면 그것을 최우선으로 사용합니다.
+    - 'TTS-SKIP' 주석 사이의 내용은 제거합니다.
+    - 그 외 나머지 일반적인 HTML 태그(br, mark, strong 등)는 제거합니다.
+    """
+    # 1. TTS-ONLY 텍스트 추출 (최우선)
+    # <span class="tts-only">...</span> 패턴 검색
+    tts_only_match = re.search(r'<span class="tts-only">(.*?)<\/span>', html_content, re.DOTALL)
+    if tts_only_match:
+        # TTS-only 내용에서 불필요한 공백과 줄바꿈 제거 후 반환
+        tts_text = tts_only_match.group(1).strip()
+        # TTS-only 텍스트 내의 HTML 태그는 제거 (혹시 모를 상황 대비)
+        return re.sub(r'<[^>]+>', '', tts_text)
 
-async def _synthesize_with_edge_tts_async(text: str, voice: str, file_name: str, rate: str = "-8%"):
-    """
-    edge-tts를 사용하여 음성 파일을 비동기적으로 생성합니다.
-    rate의 기본값을 -8%로 설정하여 약간 느리게 말하도록 합니다.
-    """
-    communicate = edge_tts.Communicate(text, voice, rate=rate)
-    await communicate.save(file_name)
+    # 2. TTS-SKIP 영역 제거
+    # <!-- TTS-SKIP-START -->...<!-- TTS-SKIP-END --> 사이의 내용을 제거
+    cleaned_content = re.sub(r'<!--\s*TTS-SKIP-START\s*-->.*?<!--\s*TTS-SKIP-END\s*-->', '', html_content, flags=re.DOTALL)
+    
+    # 3. 그 외 일반적인 HTML/마크다운 태그 제거 (마크다운은 대부분 스트림릿 렌더링 시 제거되지만, HTML 태그를 확실히 제거)
+    # 모든 HTML 태그(예: <br>, <mark>, <strong>, <table> 등) 제거
+    tts_text = re.sub(r'<[^>]+>', '', cleaned_content)
+    
+    # 4. 여러 개의 공백/줄바꿈을 하나로 줄이기
+    tts_text = re.sub(r'\s+', ' ', tts_text).strip()
+    
+    return tts_text
 
-def _clean_text_for_speech(text: str) -> str:
+# 2. 오디오 파일 생성 (비동기 함수를 동기적으로 호출)
+def generate_audio_file(text: str, file_path: str) -> bool:
     """
-    [❗️수정됨] 음성 합성을 위해 텍스트를 정리합니다.
-    HTML에서 'tts-only' 클래스 스팬과 'TTS-ONLY:' 주석의 내용만 추출합니다.
+    Edge-TTS를 사용하여 텍스트를 오디오 파일로 변환합니다.
+    성공 시 True, 실패 시 False를 반환합니다.
     """
-    text = textwrap.dedent(text)
+    # 한국어 남성 음성 선택 (발음이 정확하고 듣기 편한 음성)
+    KOREAN_VOICE = "ko-KR-BokHyeomNeural"
     
-    # 1. 'TTS-ONLY:' 주석에서 텍스트 추출
-    tts_only_comment_pattern = re.compile(r'<!--\s*TTS-ONLY:\s*(.*?)\s*-->', re.DOTALL)
-    comment_texts = tts_only_comment_pattern.findall(text)
+    # edge_tts가 비동기 함수이므로, Streamlit 환경에서 동기적으로 실행
+    async def _generate():
+        try:
+            communicate = edge_tts.Communicate(text, KOREAN_VOICE)
+            await communicate.save(file_path)
+            return True
+        except Exception as e:
+            st.error(f"오디오 생성 중 오류가 발생했습니다: {e}")
+            return False
+
+    # asyncio.run을 사용하여 비동기 함수를 실행하고 결과 반환
+    return asyncio.run(_generate())
+
+# 3. 오디오 재생 버튼 및 로직
+def play_audio_button(raw_html_content: str, key: str):
+    """
+    오디오 재생 버튼을 렌더링하고, 클릭 시 오디오를 생성하여 재생합니다.
+    key는 Streamlit 위젯을 구분하기 위해 섹션별로 고유해야 합니다.
+    """
+    # 1. TTS용 텍스트 추출
+    tts_text = extract_tts_text(raw_html_content)
     
-    # 2. 'tts-only' 클래스 스팬에서 텍스트 추출
-    tts_only_span_pattern = re.compile(r'<span[^>]+class\s*=\s*["\'“”]tts-only["\'“”][^>]*>(.*?)</span>', re.DOTALL | re.IGNORECASE)
-    span_texts = tts_only_span_pattern.findall(text)
-    
-    # 3. 추출된 모든 텍스트 결합
-    all_tts_texts = comment_texts + span_texts
-    
-    if not all_tts_texts:
-        return "" # 말할 내용이 없음
+    if not tts_text:
+        st.info("재생할 오디오 텍스트가 없습니다.")
+        return
+
+    # 세션 상태에 오디오 파일 경로 및 생성 상태 저장
+    audio_file_path_key = f'audio_file_path_{key}'
+    audio_generated_key = f'audio_generated_{key}'
+
+    if audio_file_path_key not in st.session_state:
+        st.session_state[audio_file_path_key] = None
+    if audio_generated_key not in st.session_state:
+        st.session_state[audio_generated_key] = False
+
+    # 2. 오디오 생성/재생 버튼
+    if st.button("🔊 설명 듣기", key=key):
+        # 로딩 스피너 표시
+        with st.spinner("오디오를 생성 중입니다... 잠시만 기다려주세요."):
+            
+            # 기존 오디오 파일이 있으면 삭제 (재생 버튼이 여러 번 눌릴 경우 및 재실행 시 파일 정리)
+            if st.session_state[audio_file_path_key]:
+                try:
+                    os.remove(st.session_state[audio_file_path_key])
+                except OSError as e:
+                    # 파일이 이미 없거나 권한 문제 등으로 삭제에 실패할 수 있음 (경고만 표시)
+                    st.warning(f"기존 오디오 파일 삭제 실패: {e}")
+            
+            # 임시 파일 생성
+            # delete=False로 설정하여 Streamlit이 파일을 사용하는 동안 삭제되지 않도록 보호
+            temp_file = tempfile.NamedTemporaryFile(suffix=".mp3", delete=False)
+            temp_file_path = temp_file.name
+            temp_file.close()
+            
+            # 오디오 생성 시도
+            if generate_audio_file(tts_text, temp_file_path):
+                st.session_state[audio_file_path_key] = temp_file_path
+                st.session_state[audio_generated_key] = True
+                st.toast("오디오 생성이 완료되었습니다!", icon="✅")
+            else:
+                # 실패 시 상태 초기화 및 오류 메시지는 generate_audio_file에서 처리
+                st.session_state[audio_file_path_key] = None
+                st.session_state[audio_generated_key] = False
+
+    # 3. 오디오 생성 완료 후 재생 위젯 표시
+    if st.session_state[audio_generated_key] and st.session_state[audio_file_path_key]:
+        audio_file_path = st.session_state[audio_file_path_key]
         
-    combined_text = ' '.join(all_tts_texts)
-    
-    # 4. 결합된 텍스트에서 나머지 HTML 태그 (예: <br>) 및 공백 정리
-    # tts-only 스팬 안에 <br> 태그 등이 포함되어 있을 수 있으므로, 여기서 한 번 더 정리합니다.
-    cleaned_text = re.sub(r'<[^>]+>', ' ', combined_text) # HTML 태그 제거
-    cleaned_text = re.sub(r'\s+', ' ', cleaned_text).strip() # 공백 정리
-    
-    # 5. 기존의 복잡한 정제 로직(개행 변환, 마크다운 제거 등)은
-    #    문서 전체를 대상으로 하므로 버그를 유발. tts-only 텍스트만 처리하도록 단순화.
-    
-    return cleaned_text
-
-def play_text_as_audio_callback(text_to_speak: str, output_filename: str, voice: str = "ko-KR-SunHiNeural"):
-    """
-    [❗️수정] 텍스트를 음성 변환하고, st.session_state 대신 파일 경로를 반환합니다.
-    """
-    try:
-        cleaned_text = _clean_text_for_speech(text_to_speak)
-
-        if not cleaned_text:
-            st.warning("음성으로 변환할 텍스트가 없습니다.")
-            return None  # [❗️수정] 실패 시 None 반환
-
-        run_async(_synthesize_with_edge_tts_async(cleaned_text, voice, output_filename))
-        
-        # [❗️추가] 2. 파일이 디스크에 실제로 생성되었는지 확인합니다.
-        if not os.path.exists(output_filename):
-            st.error("오디오 파일 생성 후 디스크에서 파일을 찾을 수 없습니다.")
-            return None
-        
-        # [❗️수정] st.session_state 설정 대신, 성공 시 파일 이름 반환
-        return output_filename
-        
-    except Exception as e:
-        st.error(f"음성 생성에 실패했습니다: {e}")
-        # [❗️수정] st.session_state 설정 대신, 실패 시 None 반환
-        return None
+        try:
+            with open(audio_file_path, "rb") as audio_file:
+                audio_bytes = audio_file.read()
+                # 오디오 컨트롤러 표시
+                st.audio(audio_bytes, format='audio/mp3', start_time=0)
+        except FileNotFoundError:
+            st.error("오디오 파일을 찾을 수 없습니다. 다시 생성해 주세요.")
