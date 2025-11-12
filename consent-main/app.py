@@ -1,5 +1,14 @@
 import streamlit as st
 import os
+import sys
+
+# [❗️추가] 프로젝트 루트 디렉토리를 sys.path에 추가하여
+# 서브 모듈(ui_modules/*)이 루트의 모듈(config.py, audio_util.py)을 
+# 안정적으로 임포트할 수 있도록 합니다.
+project_root = os.path.dirname(os.path.abspath(__file__))
+if project_root not in sys.path:
+    sys.path.append(project_root)
+
 
 # 프로젝트의 다른 모듈들을 임포트합니다.
 from config import (
@@ -36,8 +45,9 @@ if 'user_profile' not in st.session_state:
     st.session_state.user_profile = {}
 if 'current_page' not in st.session_state:
     st.session_state.current_page = "profile_setup"
-if 'audio_file_to_play' not in st.session_state:
-    st.session_state.audio_file_to_play = None
+# [❗️수정] 'audio_file_to_play' 초기화 코드를 제거합니다.
+# if 'audio_file_to_play' not in st.session_state:
+#     st.session_state.audio_file_to_play = None
 
 
 def render_final_chat_page():
@@ -117,8 +127,13 @@ def main():
         elif current_page == "profile_setup":
             st.subheader("나의 정보를 입력해주세요")
             render_profile_setup()
-        else: # final_chat 페이지
+        # [수정] 'else:' 대신 'elif'를 사용하여 명시적으로 final_chat 페이지를 확인합니다.
+        elif current_page == "final_chat":
             render_final_chat_page()
+        else:
+            # 예기치 않은 페이지 상태일 경우 기본 페이지로 리디렉션
+            st.session_state.current_page = "profile_setup"
+            st.rerun()
 
 if __name__ == "__main__":
     main()
