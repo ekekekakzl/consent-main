@@ -64,23 +64,27 @@ def play_audio():
     op_full_name = st.session_state.user_profile.get("surgery_type", "로봇보조 자궁절제술")
     op_prefix = get_normalized_op_prefix(op_full_name) 
     
-    # 💡 파일 경로 설정: 'static_audio' 디렉토리를 사용합니다.
-    output_filename = os.path.join("static_audio", f"{op_prefix}_{section_key}.mp3")
+    # 💡 1. 현재 app.py가 실행되는 디렉토리를 기준으로 절대 경로를 구성합니다.
+    current_dir = os.path.dirname(__file__)
+    relative_path = os.path.join("static_audio", f"{op_prefix}_{section_key}.mp3")
+    absolute_filename = os.path.join(current_dir, relative_path) # <-- 절대 경로 생성
 
-    # 💡 파일이 존재하는지 확인합니다.
-    if os.path.exists(output_filename):
+    # 💡 2. 절대 경로를 사용하여 파일 존재 여부를 확인합니다.
+    if os.path.exists(absolute_filename):
         # 파일이 존재하면 바로 재생 상태로 설정합니다.
-        st.session_state.audio_file_to_play = output_filename
+        st.session_state.audio_file_to_play = absolute_filename
         st.toast("🔊 오디오 파일이 준비되었습니다! (정적 파일 재생)", icon="✅")
     else:
         # 파일이 존재하지 않는 경우, 사용자에게 해당 파일이 필요함을 알립니다.
         st.error(f"""
-        **오디오 파일 없음 오류:**
+        **오디오 파일 없음 오류: 파일 누락**
         
-        요청하신 경로에 해당 MP3 파일을 찾을 수 없습니다. (경로: `{output_filename}`)
+        이 애플리케이션은 TTS 파일을 생성하지 않고, 다음 경로에 MP3 파일이 **미리 존재**해야 합니다.
         
-        * **해결책:** 이 애플리케이션은 정적 오디오 파일(MP3)이 미리 폴더(`static_audio/`)에 저장되어 있다고 가정합니다. 
-            해당 경로에 실제 MP3 파일을 넣어주세요.
+        * **요청 파일명:** `{op_prefix}_{section_key}.mp3`
+        * **찾으려고 시도한 절대 경로:** `{absolute_filename}`
+        
+        **해결책:** 프로젝트 폴더 내의 `static_audio` 폴더에 해당 파일을 업로드해주세요.
         """)
         st.session_state.audio_file_to_play = None
 
@@ -141,9 +145,26 @@ def render_section_page(key):
 
         except Exception as e:
             # FileNotFoundError나 MediaFileStorageError 등 모든 파일 관련 오류를 처리합니다.
-            error_message = f"**이미지 로딩 실패:** 경로의 파일을 찾을 수 없거나 열 수 없습니다. 오류: {e}"
+            error_message = f"**이미지 로딩 실패:** '{relative_image_path}' 경로의 파일을 찾을 수 없거나 열 수 없습니다."
             st.error(f"{error_message}")
+            st.info(f"""
+            **디버깅 팁:**
+            1. 경로가 올바른지 (`{relative_image_path}`) 확인하세요.
+            2. 파일의 **대소문자**가 배포 환경에서 일치하는지 확인하세요. (리눅스 환경은 대소문자를 구분합니다)
+            3. 이미지 파일이 앱 폴더 내에 실제로 **업로드**되었는지 확인하세요.
+            
+            **시도된 절대 경로:** `{absolute_image_path}`
+            """)
             st.markdown("<div style='height: 300px; border: 1px dashed #ccc; padding: 20px; text-align: center;'>이미지 로딩 오류</div>", unsafe_allow_html=True)
+        
+        finally:
+             # 💡 디버깅 정보: 시도된 경로를 항상 표시하여 사용자가 경로 문제를 직접 확인할 수 있도록 합니다.
+             st.markdown("---")
+             st.caption("🚨 **이미지 경로 디버깅 정보 (오류 시 확인)**")
+             st.code(f"현재 디렉토리 (app.py 위치): {current_dir}", language="text")
+             st.code(f"상대 경로 (config.py에서 지정): {relative_image_path}", language="text")
+             st.code(f"시도된 절대 파일 경로 (os.path.join 결과): {absolute_image_path}", language="text")
+
 
     with col_content:
         st.markdown(explanation_html, unsafe_allow_html=True)
