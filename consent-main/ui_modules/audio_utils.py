@@ -3,9 +3,6 @@ import edge_tts
 import asyncio 
 import re 
 import textwrap 
-import tempfile # [수정] 임시 파일 생성을 위해 임포트
-import os       # [수정] 경로 조작을 위해 임포트
-import uuid     # [수정] 고유한 파일 이름을 위해 임포트
 
 def run_async(coro): 
     """Streamlit과 같은 동기 환경에서 비동기 코드를 실행하기 위한 헬퍼 함수.""" 
@@ -74,30 +71,18 @@ def _clean_text_for_speech(text: str) -> str:
     
     return text 
 
-# [수정] output_filename 대신 section_key를 받도록 시그니처 변경
-def play_text_as_audio_callback(text_to_speak: str, section_key: str, voice: str = "ko-KR-SunHiNeural"): 
+def play_text_as_audio_callback(text_to_speak: str, output_filename: str, voice: str = "ko-KR-SunHiNeural"): 
     """ 
     정제된 텍스트를 edge-tts로 음성 변환하고 재생 상태를 설정하는 콜백 함수. 
     """ 
     try: 
         cleaned_text = _clean_text_for_speech(text_to_speak) 
 
-        # [수정] 텍스트가 비어있거나, 유의미한 문자(글자/숫자)가 없는지 확인합니다.
-        # 이렇게 하면 ". , ." 처럼 문장 부호만 남은 텍스트가 API로 전송되는 것을 방지합니다.
-        if not cleaned_text or not re.search(r'[가-힣a-zA-Z0-9]', cleaned_text): 
-            st.warning("음성으로 변환할 텍스트가 없습니다. (공백, 문장 부호 등만 포함)") 
+        if not cleaned_text: 
+            st.warning("음성으로 변환할 텍스트가 없습니다.") 
             return 
 
-        # [수정] 고유한 임시 파일 이름 생성
-        temp_dir = tempfile.gettempdir()
-        output_filename = os.path.join(temp_dir, f"audio_{section_key}_{uuid.uuid4()}.mp3")
-
         run_async(_synthesize_with_edge_tts_async(cleaned_text, voice, output_filename)) 
-        
-        # [수정] 생성된 임시 파일 경로를 세션 상태에 추가하여 나중에 삭제할 수 있도록 함
-        if 'temp_audio_files' not in st.session_state:
-            st.session_state.temp_audio_files = []
-        st.session_state.temp_audio_files.append(output_filename)
         
         st.session_state.audio_file_to_play = output_filename 
         
