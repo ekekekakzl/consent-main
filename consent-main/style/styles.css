@@ -1,0 +1,135 @@
+/* Streamlit 앱의 전체 기본 글꼴 크기 설정 */
+html, body, .stApp {
+    font-size: 20px;
+}
+
+/* [최종 해결] 설명 텍스트의 배경을 강제로 투명하게 만드는 새로운 클래스 */
+.unstyled-paragraph {
+    background: none !important;
+    background-color: transparent !important;
+    border: none !important;
+    padding: 0 !important;
+    margin-bottom: 0.5rem; /* 문단 간 간격 추가 */
+}
+
+/* 1. 기본 버튼 (음성 재생 등) - 연두색 */
+.stButton > button {
+    background-color: #9df1a0 !important;
+    color: rgb(0, 0, 0) !important;
+    border: none !important;
+    padding: 10px 20px;
+    font-size: 20px;
+    margin: 4px 0px;
+    border-radius: 8px;
+    transition: background-color 0.3s ease;
+}
+.stButton > button:hover {
+    background-color: #45a049 !important;
+}
+
+/* "다음 단계" 등 primary 버튼 - 파란색 */
+.stButton > button[kind="primary"] {
+    background-color: #007bff !important;
+    color: white !important;
+    border: none !important;
+    padding: 10px 20px;
+    font-size: 20px;
+    margin: 4px 0px;
+    border-radius: 8px;
+}
+.stButton > button[kind="primary"]:hover {
+    background-color: #0056b3 !important;
+}
+
+
+/* 입력 필드 (text_input, number_input) 배경 및 글자색 변경 */
+div.stTextInput > div > div > input,
+div.stNumberInput > div > div > input {
+    background-color: #ffffff;
+    color: #000000;
+    border: 1px solid #a7d9ed;
+    border-radius: 5px;
+    padding: 15px;
+    font-size: 24px
+}
+
+/* 텍스트 영역 (text_area) 배경 및 글자색 변경 */
+div.stTextArea > div > textarea {
+    background-color: #ffffff;
+    color: #000000;
+    border: 1px solid #a7d9ed;
+    border-radius: 5px;
+    padding: 15px;
+    font-size: 30px;
+}
+
+/* Selectbox (드롭다운) 배경 및 글자색 변경 */
+div.stSelectbox > div[data-baseweb="select"] > div,
+div.stSelectbox > div[data-baseweb="select"] > div > div {
+    background-color: #ffffff !important;
+    color: #000000 !important;
+    border: 1px solid #a7d9ed !important;
+    border-radius: 5px !important;
+}
+/* 드롭다운 메뉴 아이템 */
+div[data-baseweb="popover"] > div > ul > li {
+    background-color: #dfdafa !important;
+    color: #000000 !important;
+}
+div[data-baseweb="popover"] > div > ul > li:hover {
+    background-color: #d1edfa !important; /* 호버 색상 */
+}
+
+/* 프로그레스 바 텍스트 색상 (스피너 내부 텍스트) */
+.stSpinner > div > span {
+    color: #97d4fd !important;
+}
+
+/* [수정] st.caption (description) 글자색을 검정색으로 변경 */
+.stCaption > div > p {
+    color: #000000 !important;
+}
+
+/* 퀴즈 및 FAQ 관련 스타일은 제거됨 */
+
+/* [최종 수정] 오디오 플레이어 내부의 실제 <audio> 태그에 직접 스타일을 적용합니다. */
+[data-testid="stAudio"] audio {
+    position: fixed !important; /* 화면에 고정 */
+    top: 20px !important; /* 화면 상단에서 20px 아래 */
+    left: 50% !important; /* 가로 중앙 정렬 (시작점) */
+    transform: translateX(-50%) !important; /* 가로 중앙 정렬 (보정) */
+    
+    /* 너비를 auto로 설정하여 브라우저 기본 크기(컨트롤 포함)로 표시 */
+    width: auto !important; 
+    max-width: 90% !important; /* 너무 커지지 않도록 */
+    
+    /* 배경색과 그림자 추가 */
+    background-color: #ffffff !important;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important;
+    border-radius: 5px !important; /* 살짝 둥근 모서리 */
+    z-index: 1000 !important;
+    
+    /* 패딩이나 강제 높이 지정을 하지 않아 브라우저 기본 컨트롤이 보이도록 합니다. */
+}
+
+
+/* --- 레이아웃 정렬을 위한 CSS --- */
+div[data-testid="stHeader"] {
+    display: none !important;
+}
+
+div[data-testid="stSidebarContent"] > .block-container,
+div[data-testid="stAppViewContainer"] > .main > .block-container {
+    padding-top: 1.5rem !important;
+}
+
+/* 커스텀 제목 클래스 */
+.sidebar-menu-title, .main-app-title, .final-chat-title, .summary-title {
+    margin-top: 0 !important;
+    padding-top: 0 !important;
+    margin-bottom: 1rem;
+}
+.tts-only {
+    display: none;
+    /* 화면에서 완전히 사라지게 하는 CSS 속성입니다. */
+}
