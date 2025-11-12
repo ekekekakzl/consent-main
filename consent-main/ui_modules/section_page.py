@@ -34,38 +34,44 @@ def _on_tts_click(text_to_speak, section_key):
         st.session_state.audio_file_to_play = None
 
 
-def render_section_navigation_buttons(section_idx, parent_column):
+def _render_section_navigation_buttons_inline(section_idx):
+    """
+    [❗️수정] 네비게이션 버튼을 인라인으로 렌더링합니다. 
+    기존의 render_section_navigation_buttons 함수를 인라인으로 변경하고, 
+    외부에서 컬럼을 전달받지 않도록 수정했습니다.
+    """
     current_page_key = st.session_state.current_page
     current_page_key_index = SECTIONS_ORDER_KEYS.index(current_page_key)
 
-    with parent_column:
-        # [❗️수정] 버튼 3개 레이아웃을 맞추기 위해 3개 컬럼 사용
-        nav_cols = st.columns([1, 1, 1])
-        
-        # 이전 단계 버튼
-        with nav_cols[0]:
-            if current_page_key_index > 0:
-                if st.button("⬅️ 이전 단계", key=f"prev_section_{section_idx}", use_container_width=True):
-                    st.session_state.current_page = SECTIONS_ORDER_KEYS[current_page_key_index - 1]
-                    st.rerun()
-            else:
-                if st.button("⬅️ 이전 단계", key=f"back_to_profile_{section_idx}", use_container_width=True):
-                    st.session_state.profile_setup_completed = False
-                    st.session_state.current_page = "profile_setup"
-                    st.rerun()
+    # [❗️수정] 여기서 st.columns를 호출하여 네비게이션 버튼을 위한 3개의 컬럼을 생성합니다.
+    # play_col 내부가 아닌, render_section_page의 하단에 배치하기 위해 함수를 분리했습니다.
+    nav_cols = st.columns([1, 1, 1])
 
-        # [❗️삭제] 여기에 다음/완료 버튼을 두지 않고, 아래 next_col에 배치하여 3개 레이아웃 유지
+    # 이전 단계 버튼
+    with nav_cols[0]:
+        if current_page_key_index > 0:
+            if st.button("⬅️ 이전 단계", key=f"prev_section_{section_idx}", use_container_width=True):
+                st.session_state.current_page = SECTIONS_ORDER_KEYS[current_page_key_index - 1]
+                st.rerun()
+        else:
+            if st.button("⬅️ 이전 단계", key=f"back_to_profile_{section_idx}", use_container_width=True):
+                st.session_state.profile_setup_completed = False
+                st.session_state.current_page = "profile_setup"
+                st.rerun()
 
-        # 다음 단계 / 완료 버튼
-        with nav_cols[2]:
-            if current_page_key_index < len(SECTIONS_ORDER_KEYS) - 1:
-                if st.button("다음 단계 ➡️", key=f"next_section_{section_idx}", use_container_width=True, type="primary"):
-                    st.session_state.current_page = SECTIONS_ORDER_KEYS[current_page_key_index + 1]
-                    st.rerun()
-            else:
-                if st.button("설명 완료 ✅", key=f"finish_sections", use_container_width=True, type="primary"):
-                    st.session_state.current_page = "final_chat"
-                    st.rerun()
+    # (중앙 컬럼은 비워둡니다)
+
+    # 다음 단계 / 완료 버튼
+    with nav_cols[2]:
+        if current_page_key_index < len(SECTIONS_ORDER_KEYS) - 1:
+            if st.button("다음 단계 ➡️", key=f"next_section_{section_idx}", use_container_width=True, type="primary"):
+                st.session_state.current_page = SECTIONS_ORDER_KEYS[current_page_key_index + 1]
+                st.rerun()
+        else:
+            if st.button("설명 완료 ✅", key=f"finish_sections", use_container_width=True, type="primary"):
+                st.session_state.current_page = "final_chat"
+                st.rerun()
+
 
 def render_section_page(section_idx, title, description, section_key):
     st.markdown("<script>window.scrollTo(0, 0);</script>", unsafe_allow_html=True)
@@ -147,8 +153,11 @@ def render_section_page(section_idx, title, description, section_key):
             st.markdown(explanation_text, unsafe_allow_html=True)
         
         st.markdown("---")
-        # [❗️수정] 네비게이션 버튼을 가운데 컬럼에 배치하여 중앙 정렬된 효과
-        render_section_navigation_buttons(section_idx, play_col)
+        # [❗️수정] 네비게이션 버튼 렌더링을 col_right의 영역을 벗어나서 독립적으로 호출합니다.
+    
+    # [❗️수정] 네비게이션 버튼을 전체 메인 영역 하단에 독립적으로 렌더링합니다.
+    # 이렇게 해야 st.columns 중첩 오류가 발생하지 않습니다.
+    _render_section_navigation_buttons_inline(section_idx)
 
 
 def render_necessity_page():
