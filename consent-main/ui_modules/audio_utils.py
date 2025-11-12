@@ -3,6 +3,7 @@ import edge_tts
 import asyncio
 import re
 import textwrap
+import os # [❗️수정] 1. os 모듈을 임포트합니다.
 
 def run_async(coro):
     """Streamlit과 같은 동기 환경에서 비동기 코드를 실행하기 위한 헬퍼 함수."""
@@ -66,6 +67,11 @@ def play_text_as_audio_callback(text_to_speak: str, output_filename: str, voice:
             return None  # [❗️수정] 실패 시 None 반환
 
         run_async(_synthesize_with_edge_tts_async(cleaned_text, voice, output_filename))
+        
+        # [❗️추가] 2. 파일이 디스크에 실제로 생성되었는지 확인합니다.
+        if not os.path.exists(output_filename):
+            st.error("오디오 파일 생성 후 디스크에서 파일을 찾을 수 없습니다.")
+            return None
         
         # [❗️수정] st.session_state 설정 대신, 성공 시 파일 이름 반환
         return output_filename
