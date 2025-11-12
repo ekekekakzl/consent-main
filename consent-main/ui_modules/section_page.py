@@ -1,20 +1,17 @@
 import streamlit as st
 import os
 import base64
-# [❗️수정] sys 모듈 및 os 모듈을 사용하여 루트 디렉토리를 임포트 경로에 추가합니다.
-import sys
-# 현재 파일의 상위 디렉토리(루트 디렉토리)를 sys.path에 추가
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+# [❗️제거] app.py에서 sys.path 설정을 처리했으므로, 여기서는 제거합니다.
+# import sys
+# sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from config import SECTIONS_ORDER_KEYS
 from gemini_utils import get_gemini_response_from_combined_content
-# [❗️수정] sys.path를 설정했으므로, 이제 audio_util을 직접 임포트할 수 있습니다.
+# audio_util은 이제 sys.path를 통해 직접 임포트됩니다.
 from audio_util import play_audio_button 
 
 
 # [❗️제거] BASE_AUDIO_PATH는 이제 audio_util.py에서 관리합니다.
-# BASE_AUDIO_PATH = "/tmp"
-
 # [❗️제거] _on_tts_click 함수는 제거합니다.
 
 def _render_section_navigation_buttons_inline(section_idx):
@@ -61,10 +58,8 @@ def render_section_page(section_idx, title, description, section_key):
     if st.session_state.get('last_loaded_section_key') != section_key:
         st.session_state.current_gemini_explanation = ""
         # [❗️제거] 오디오 재생 요청 상태 리셋 코드는 audio_util.py 내부에서 관리됩니다.
-        # st.session_state.audio_file_to_play = None
     
     # 2. 오디오 파일 재생 로직 (audio_util.py가 모든 것을 처리하도록 변경)
-    # st.session_state.get('audio_file_to_play') 관련 로직을 제거합니다.
     
     # 3. 텍스트 생성
     if not st.session_state.get('current_gemini_explanation'):
@@ -80,13 +75,7 @@ def render_section_page(section_idx, title, description, section_key):
 
     with col_left:
         if section_key == "method":
-            # [❗️수정] os.path.join에 os.path.dirname(os.path.abspath(__file__))을 사용하지 않고, 
-            # app.py와 section_page.py가 동일한 계층에 있다고 가정하고 상대 경로를 사용합니다.
-            img_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "images", "로봇수술이미지.png")
-            # 경로가 너무 복잡하면 Streamlit 환경에서 찾기 어려울 수 있으므로, 
-            # 임시로 이미지 파일을 찾을 수 없는 경우를 대비하여 경로 탐색 로직을 추가했습니다.
-            
-            # `ui_modules` 폴더 기준으로 상위 폴더의 `images`를 찾습니다.
+            # 파일 경로 탐색 로직: `ui_modules` 폴더 기준으로 상위 폴더의 `images`를 찾습니다.
             relative_img_path = os.path.join(os.path.dirname(__file__), "..", "images", "로봇수술이미지.png")
             
             if os.path.exists(relative_img_path):
@@ -108,8 +97,7 @@ def render_section_page(section_idx, title, description, section_key):
             st.caption(description)
         with play_col:
             if st.session_state.current_gemini_explanation:
-                # [❗️수정] audio_util.play_audio_button 함수를 직접 호출합니다.
-                # 이 함수가 버튼 렌더링, 오디오 생성, 재생 위젯 표시까지 모두 처리합니다.
+                # audio_util.play_audio_button 함수를 직접 호출합니다.
                 play_audio_button(
                     raw_html_content=st.session_state.current_gemini_explanation,
                     key=f"play_section_explanation_{section_key}"
@@ -139,4 +127,3 @@ def render_side_effects_page():
 
 def render_precautions_page():
     render_section_page(5, "수술 후 관리", "[생활 관리 방법]", "precautions")
-
