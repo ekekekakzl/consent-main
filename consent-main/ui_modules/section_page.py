@@ -7,8 +7,8 @@ import base64
 
 from config import SECTIONS_ORDER_KEYS
 from gemini_utils import get_gemini_response_from_combined_content
-# audio_util은 이제 sys.path를 통해 직접 임포트됩니다.
-from audio_util import play_audio_button 
+# [❗️수정] 상대 경로 임포트로 변경하여 안정성을 높입니다.
+from ..audio_util import play_audio_button 
 
 
 # [❗️제거] BASE_AUDIO_PATH는 이제 audio_util.py에서 관리합니다.
