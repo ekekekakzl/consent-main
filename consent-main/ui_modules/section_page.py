@@ -36,33 +36,15 @@ def render_section_navigation_buttons(section_idx, parent_column):
 def render_section_page(section_idx, title, description, section_key):
     st.markdown("<script>window.scrollTo(0, 0);</script>", unsafe_allow_html=True)
     
+    # [❗️수정] 오디오 플레이어를 위한 st.empty() placeholder를 페이지 상단에 둡니다.
+    audio_placeholder = st.empty()
+    
     if st.session_state.get('last_loaded_section_key') != section_key:
         st.session_state.current_gemini_explanation = ""
         st.session_state.audio_file_to_play = None
     
-    audio_file_path = st.session_state.get('audio_file_to_play')
-    
-    if audio_file_path and os.path.exists(audio_file_path):
-        try:
-            with open(audio_file_path, "rb") as f:
-                data = f.read()
-            
-            b64 = base64.b64encode(data).decode()
-            
-            md = f"""
-                <audio controls autoplay="true">
-                <source src="data:audio/mp3;base64,{b64}" type="audio/mp3">
-                Your browser does not support the audio element.
-                </audio>
-                """
-            
-            st.markdown(md, unsafe_allow_html=True)
-
-            st.session_state.audio_file_to_play = None
-
-        except Exception as e:
-            st.error(f"오디오 재생 중 오류 발생: {e}")
-            st.session_state.audio_file_to_play = None
+    # [❗️수정] 페이지 로드 시 오디오를 재생하던 로직을 제거합니다.
+    # (버튼 클릭 시에만 재생하도록 변경)
 
     if not st.session_state.current_gemini_explanation:
         explanation = get_gemini_response_from_combined_content(
@@ -91,9 +73,46 @@ def render_section_page(section_idx, title, description, section_key):
             st.caption(description)
         with play_col:
             if st.session_state.current_gemini_explanation:
-                st.button("음성 재생 ▶️", key=f"play_section_explanation_{section_key}", use_container_width=True,
-                            on_click=play_text_as_audio_callback, 
-                            args=(st.session_state.current_gemini_explanation, f"section_audio_{section_key}.mp3"))
+                
+                # [❗️수정] on_click 대신 if st.button()을 사용합니다.
+                if st.button("음성 재생 ▶️", key=f"play_section_explanation_{section_key}", use_container_width=True):
+                    
+                    audio_filename = f"section_audio_{section_key}.mp3"
+                    
+                    # 1. 콜백을 호출하여 음성 파일 생성 및 상태 설정
+                    play_text_as_audio_callback(
+                        st.session_state.current_gemini_explanation, 
+                        audio_filename
+                    )
+                    
+                    # 2. st.rerun() 대신, 생성된 파일을 직접 읽고 base64로 변환합니다.
+                    audio_file_path = st.session_state.get('audio_file_to_play')
+                    
+                    if audio_file_path and os.path.exists(audio_file_path):
+                        try:
+                            with open(audio_file_path, "rb") as f:
+                                data = f.read()
+                            
+                            b64 = base64.b64encode(data).decode()
+                            
+                            md = f"""
+                                <audio controls autoplay="true">
+                                <source src="data:audio/mp3;base64,{b64}" type="audio/mp3">
+                                Your browser does not support the audio element.
+                                </audio>
+                                """
+                            
+                            # 3. st.empty() placeholder에 오디오 플레이어를 렌더링합니다.
+                            audio_placeholder.markdown(md, unsafe_allow_html=True)
+                            
+                            # 4. 재생 후 상태를 None으로 리셋하여 반복 재생 방지
+                            st.session_state.audio_file_to_play = None
+
+                        except Exception as e:
+                            st.error(f"오디오 재생 중 오류 발생: {e}")
+                            st.session_state.audio_file_to_play = None
+                    else:
+                        st.error("음성 파일 생성 후 즉시 읽는 데 실패했습니다.")
 
         explanation_text = st.session_state.get('current_gemini_explanation', '')
         if explanation_text:
