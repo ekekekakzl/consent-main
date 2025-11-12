@@ -161,8 +161,6 @@ def render_section_page(key):
     with col_content:
         st.markdown(explanation_html, unsafe_allow_html=True)
 
-        st.markdown("---")
-        
         col1, col2, col3 = st.columns([1, 1, 1])
 
         with col1:
@@ -191,8 +189,6 @@ def render_section_page(key):
 
 def render_final_chat_page():
     st.markdown("<h1 class='final-chat-title'>모든 설명을 완료했습니다! 🎉 설명을 들어주셔서 감사합니다.</h1>", unsafe_allow_html=True)
-    st.markdown("---")
-
     col1, col2 = st.columns(2)
 
     with col1:
