@@ -13,7 +13,7 @@ def run_async(coro):
         asyncio.set_event_loop(loop) 
     return loop.run_until_complete(coro) 
 
-async def _synthesize_with_edge_tts_async(text: str, voice: str, file_name: str, rate: str = "-8%"): 
+async def _synthesize_with_edge_tts_async(text: str, voice: str, file_name: str): 
     """ 
     edge-tts를 사용하여 음성 파일을 비동기적으로 생성합니다. 
     rate의 기본값을 -8%로 설정하여 약간 느리게 말하도록 합니다. 
@@ -88,4 +88,5 @@ def play_text_as_audio_callback(text_to_speak: str, output_filename: str, voice:
         
     except Exception as e: 
         st.error(f"음성 생성에 실패했습니다: {e}") 
+
         st.session_state.audio_file_to_play = None
