@@ -1,50 +1,28 @@
 import streamlit as st
 import os
 import base64
-# import datetime # datetime은 현재 사용되지 않으므로 제거합니다.
-# from io import BytesIO # BytesIO는 현재 사용되지 않으므로 제거합니다.
 
 from config import SECTIONS_ORDER_KEYS
 from gemini_utils import get_gemini_response_from_combined_content
-from ui_modules.audio_utils import play_text_as_audio_callback
+# [❗️수정] 루트 디렉토리의 audio_util.py에서 play_audio_button 함수를 임포트합니다.
+# play_text_as_audio_callback 함수 및 _on_tts_click 함수는 제거하고,
+# play_audio_button으로 모든 오디오 재생 로직을 처리합니다.
+from audio_util import play_audio_button 
 
-# [❗️유지] Streamlit Cloud에서 안정적인 파일 경로
-BASE_AUDIO_PATH = "/tmp"
 
-def _on_tts_click(text_to_speak, section_key):
-    """
-    [❗️추가] 음성 재생 버튼 클릭 시 호출되는 콜백 함수.
-    audio_utils를 호출하고, 성공 시 st.session_state에 경로를 저장합니다.
-    """
-    # 1. 절대 경로 파일 이름 생성 (현재 페이지, 타임스탬프 대신 고유 ID 사용)
-    # Streamlit은 새로고침 시 파일명을 기억할 필요가 없으므로 UUID를 사용해 중복 방지
-    audio_file_name = f"tts_output_{section_key}_{os.urandom(8).hex()}.mp3"
-    audio_file_path = os.path.join(BASE_AUDIO_PATH, audio_file_name)
+# [❗️제거] BASE_AUDIO_PATH는 이제 audio_util.py에서 관리합니다.
+# BASE_AUDIO_PATH = "/tmp"
 
-    # 2. 오디오 생성 및 파일 경로 반환
-    generated_file_path = play_text_as_audio_callback(
-        text_to_speak=text_to_speak, 
-        output_filename=audio_file_path
-    )
-    
-    # 3. 세션 상태에 저장 (다음 렌더링 시 재생되도록)
-    if generated_file_path:
-        st.session_state.audio_file_to_play = generated_file_path
-    else:
-        st.session_state.audio_file_to_play = None
-
+# [❗️제거] _on_tts_click 함수는 제거합니다.
 
 def _render_section_navigation_buttons_inline(section_idx):
     """
-    [❗️수정] 네비게이션 버튼을 인라인으로 렌더링합니다. 
-    기존의 render_section_navigation_buttons 함수를 인라인으로 변경하고, 
-    외부에서 컬럼을 전달받지 않도록 수정했습니다.
+    네비게이션 버튼을 인라인으로 렌더링합니다. 
     """
     current_page_key = st.session_state.current_page
     current_page_key_index = SECTIONS_ORDER_KEYS.index(current_page_key)
 
-    # [❗️수정] 여기서 st.columns를 호출하여 네비게이션 버튼을 위한 3개의 컬럼을 생성합니다.
-    # play_col 내부가 아닌, render_section_page의 하단에 배치하기 위해 함수를 분리했습니다.
+    # 네비게이션 버튼을 위한 3개의 컬럼을 생성합니다.
     nav_cols = st.columns([1, 1, 1])
 
     # 이전 단계 버튼
@@ -80,39 +58,12 @@ def render_section_page(section_idx, title, description, section_key):
     # 섹션이 변경되면 이전 텍스트와 오디오 파일을 지웁니다.
     if st.session_state.get('last_loaded_section_key') != section_key:
         st.session_state.current_gemini_explanation = ""
-        # 오디오 재생 요청 상태도 리셋합니다.
-        st.session_state.audio_file_to_play = None
+        # [❗️제거] 오디오 재생 요청 상태 리셋 코드는 audio_util.py 내부에서 관리됩니다.
+        # st.session_state.audio_file_to_play = None
     
-    # 2. 오디오 파일 재생 로직 (초기화된 세션 상태를 확인)
-    audio_file_path = st.session_state.get('audio_file_to_play')
+    # 2. 오디오 파일 재생 로직 (audio_util.py가 모든 것을 처리하도록 변경)
+    # st.session_state.get('audio_file_to_play') 관련 로직을 제거합니다.
     
-    if audio_file_path and os.path.exists(audio_file_path):
-        try:
-            # 파일을 읽고 Base64 인코딩
-            with open(audio_file_path, "rb") as f:
-                data = f.read()
-            
-            b64 = base64.b64encode(data).decode()
-            
-            md = f"""
-                <audio controls autoplay="true">
-                <source src="data:audio/mp3;base64,{b64}" type="audio/mp3">
-                Your browser does not support the audio element.
-                </audio>
-                """
-            
-            st.markdown(md, unsafe_allow_html=True)
-
-            # 재생이 끝나면 파일 경로와 실제 파일을 삭제합니다.
-            st.session_state.audio_file_to_play = None
-            os.remove(audio_file_path) # [❗️추가] 재생 후 임시 파일 삭제
-
-        except Exception as e:
-            st.error(f"오디오 재생 중 오류 발생: {e}")
-            st.session_state.audio_file_to_play = None
-            if os.path.exists(audio_file_path):
-                 os.remove(audio_file_path)
-
     # 3. 텍스트 생성
     if not st.session_state.get('current_gemini_explanation'):
         explanation = get_gemini_response_from_combined_content(
@@ -127,12 +78,24 @@ def render_section_page(section_idx, title, description, section_key):
 
     with col_left:
         if section_key == "method":
-            # [❗️수정] os.path.join에 os.path.dirname(__file__) 사용 방식 수정
+            # [❗️수정] os.path.join에 os.path.dirname(os.path.abspath(__file__))을 사용하지 않고, 
+            # app.py와 section_page.py가 동일한 계층에 있다고 가정하고 상대 경로를 사용합니다.
             img_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "images", "로봇수술이미지.png")
-            if os.path.exists(img_path):
-                st.image(img_path, caption="[로봇수술 시스템 구성 요소]", use_container_width=True)
+            # 경로가 너무 복잡하면 Streamlit 환경에서 찾기 어려울 수 있으므로, 
+            # 임시로 이미지 파일을 찾을 수 없는 경우를 대비하여 경로 탐색 로직을 추가했습니다.
+            
+            # `ui_modules` 폴더 기준으로 상위 폴더의 `images`를 찾습니다.
+            relative_img_path = os.path.join(os.path.dirname(__file__), "..", "images", "로봇수술이미지.png")
+            
+            if os.path.exists(relative_img_path):
+                st.image(relative_img_path, caption="[로봇수술 시스템 구성 요소]", use_container_width=True)
             else:
-                st.warning(f"이미지 파일을 찾을 수 없습니다: {img_path}")
+                # 파일이 없을 경우, Streamlit 앱의 루트 경로에서 다시 시도해봅니다.
+                alt_img_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "images", "로봇수술이미지.png")
+                if os.path.exists(alt_img_path):
+                     st.image(alt_img_path, caption="[로봇수술 시스템 구성 요소]", use_container_width=True)
+                else:
+                    st.warning(f"이미지 파일을 찾을 수 없습니다: {relative_img_path} 또는 {alt_img_path}")
         else:
             st.empty()
 
@@ -143,20 +106,20 @@ def render_section_page(section_idx, title, description, section_key):
             st.caption(description)
         with play_col:
             if st.session_state.current_gemini_explanation:
-                # [❗️수정] on_click에 콜백 함수(_on_tts_click)와 인자 추가
-                st.button("음성 재생 ▶️", key=f"play_section_explanation_{section_key}", use_container_width=True,
-                            on_click=_on_tts_click, 
-                            args=(st.session_state.current_gemini_explanation, section_key))
+                # [❗️수정] audio_util.play_audio_button 함수를 직접 호출합니다.
+                # 이 함수가 버튼 렌더링, 오디오 생성, 재생 위젯 표시까지 모두 처리합니다.
+                play_audio_button(
+                    raw_html_content=st.session_state.current_gemini_explanation,
+                    key=f"play_section_explanation_{section_key}"
+                )
 
         explanation_text = st.session_state.get('current_gemini_explanation', '')
         if explanation_text:
             st.markdown(explanation_text, unsafe_allow_html=True)
         
         st.markdown("---")
-        # [❗️수정] 네비게이션 버튼 렌더링을 col_right의 영역을 벗어나서 독립적으로 호출합니다.
     
-    # [❗️수정] 네비게이션 버튼을 전체 메인 영역 하단에 독립적으로 렌더링합니다.
-    # 이렇게 해야 st.columns 중첩 오류가 발생하지 않습니다.
+    # 네비게이션 버튼을 전체 메인 영역 하단에 독립적으로 렌더링합니다.
     _render_section_navigation_buttons_inline(section_idx)
 
 
@@ -174,3 +137,4 @@ def render_side_effects_page():
 
 def render_precautions_page():
     render_section_page(5, "수술 후 관리", "[생활 관리 방법]", "precautions")
+
