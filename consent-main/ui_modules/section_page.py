@@ -1,13 +1,18 @@
 import streamlit as st
 import os
 import base64
-# [❗️제거] app.py에서 sys.path 설정을 처리했으므로, 여기서는 제거합니다.
-# import sys
-# sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+# [❗️재추가된 안정성 확보 코드] Streamlit 환경에서 app.py의 sys.path 설정이 
+# 늦게 적용되는 문제를 해결하기 위해, 임포트 전에 명시적으로 루트 경로를 추가합니다.
+import sys
+# 현재 파일 (ui_modules/section_page.py)의 디렉토리에서 두 단계 위 (프로젝트 루트)로 이동
+project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+if project_root not in sys.path:
+    sys.path.append(project_root)
+
 
 from config import SECTIONS_ORDER_KEYS
 from gemini_utils import get_gemini_response_from_combined_content
-# [❗️수정] 루트 디렉토리 기반 절대 경로 임포트로 재변경합니다. (app.py의 sys.path 설정에 의존)
+# 루트 디렉토리 기반 절대 경로 임포트 (이제 sys.path 설정에 의해 확실하게 보장됨)
 from audio_util import play_audio_button 
 
 
