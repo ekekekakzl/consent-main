@@ -1,12 +1,14 @@
 import streamlit as st
 import os
 import base64
+# [❗️수정] sys 모듈 및 os 모듈을 사용하여 루트 디렉토리를 임포트 경로에 추가합니다.
+import sys
+# 현재 파일의 상위 디렉토리(루트 디렉토리)를 sys.path에 추가
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from config import SECTIONS_ORDER_KEYS
 from gemini_utils import get_gemini_response_from_combined_content
-# [❗️수정] 루트 디렉토리의 audio_util.py에서 play_audio_button 함수를 임포트합니다.
-# play_text_as_audio_callback 함수 및 _on_tts_click 함수는 제거하고,
-# play_audio_button으로 모든 오디오 재생 로직을 처리합니다.
+# [❗️수정] sys.path를 설정했으므로, 이제 audio_util을 직접 임포트할 수 있습니다.
 from audio_util import play_audio_button 
 
 
