@@ -230,12 +230,6 @@ def main():
                 if st.button(str(info['idx']) + ". " + info['title'], key=f"sidebar_nav_{key}", type="primary" if is_active else "secondary", use_container_width=True):
                     set_section(key)
             
-            is_final = st.session_state.current_page == "final_chat"
-            if st.session_state.current_page in ["final_chat"] + SECTIONS_ORDER_KEYS: 
-                    st.markdown("---")
-                    if st.button("✅ 전체 설명 완료", key="sidebar_nav_final", type="primary" if is_final else "secondary", use_container_width=True):
-                        set_section("final_chat")
-
         st.markdown("---")
         if st.button("로그아웃", key="logout_button_sidebar", use_container_width=True):
             st.session_state.clear()
