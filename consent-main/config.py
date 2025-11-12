@@ -23,15 +23,15 @@ IMAGE_FILE_MAP = {
         "necessity": "images/gynecologic/necessity.jpg", 
         "method": "images/gynecologic/method.png",
         "considerations": "images/gynecologic/considerations.jpg",
-        "side_effects": "images/gynecologic/side_effects.jpg",
-        "precautions": "images/gynecologic/precautions.jpg",
+        "side_effects": "images/gynecologic/side_effects.png",
+        "precautions": "images/gynecologic/precautions.png",
     },
     # 수술 종류 2: 로봇보조 전립선절제술
     "로봇보조 전립선절제술": {
         "necessity": "images/urology/necessity.jpg",
         "method": "images/urology/method.png",
-        "considerations": "images/urology/considerations.jpg",
-        "side_effects": "images/urology/side_effects.jpg",
+        "considerations": "images/urology/considerations.jpeg",
+        "side_effects": "images/urology/side_effects.png",
         "precautions": "images/urology/precautions.jpg",
     },
 }
@@ -231,4 +231,5 @@ SECTIONS_SIDEBAR_MAP = {
     "side_effects": {"title": "합병증", "idx": 4},
     "precautions": {"title": "관리 방법", "idx": 5},
 }
+
 
