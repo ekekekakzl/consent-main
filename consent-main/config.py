@@ -30,7 +30,7 @@ IMAGE_FILE_MAP = {
     "로봇보조 전립선절제술": {
         "necessity": "images/urology/necessity.jpg",
         "method": "images/urology/method.png",
-        "considerations": "images/urology/considerations.jpeg",
+        "considerations": "images/urology/considerations.png",
         "side_effects": "images/urology/side_effects.jpg",
         "precautions": "images/urology/precautions.png",
     },
@@ -231,6 +231,7 @@ SECTIONS_SIDEBAR_MAP = {
     "side_effects": {"title": "합병증", "idx": 4},
     "precautions": {"title": "관리 방법", "idx": 5},
 }
+
 
 
 
