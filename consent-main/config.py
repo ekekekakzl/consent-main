@@ -22,7 +22,7 @@ IMAGE_FILE_MAP = {
     "로봇보조 자궁절제술": {
         "necessity": "images/gynecologic/necessity.jpg", 
         "method": "images/gynecologic/method.png",
-        "considerations": "images/gynecologic/considerations.jpg",
+        "considerations": "images/gynecologic/considerations.png",
         "side_effects": "images/gynecologic/side_effects.png",
         "precautions": "images/gynecologic/precautions.png",
     },
@@ -231,6 +231,7 @@ SECTIONS_SIDEBAR_MAP = {
     "side_effects": {"title": "합병증", "idx": 4},
     "precautions": {"title": "관리 방법", "idx": 5},
 }
+
 
 
 
