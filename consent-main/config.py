@@ -31,8 +31,8 @@ IMAGE_FILE_MAP = {
         "necessity": "images/urology/necessity.jpg",
         "method": "images/urology/method.png",
         "considerations": "images/urology/considerations.jpeg",
-        "side_effects": "images/urology/side_effects.png",
-        "precautions": "images/urology/precautions.jpg",
+        "side_effects": "images/urology/side_effects.jpg",
+        "precautions": "images/urology/precautions.png",
     },
 }
 
@@ -231,6 +231,7 @@ SECTIONS_SIDEBAR_MAP = {
     "side_effects": {"title": "합병증", "idx": 4},
     "precautions": {"title": "관리 방법", "idx": 5},
 }
+
 
 
 
