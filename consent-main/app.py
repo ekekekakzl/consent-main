@@ -1,7 +1,7 @@
 import streamlit as st
 import os
 import base64 
-import time # 💡 오디오 생성 시뮬레이션에 필요한 time 모듈을 임포트합니다.
+import time
 
 from config import (
     USERNAME, PASSWORD,
@@ -44,9 +44,6 @@ def set_section(key):
     st.session_state.current_page = key
 
 def get_normalized_op_prefix(op_full_name):
-    """
-    긴 수술명을 파일명에 사용할 짧은 영어 접두사로 정규화합니다.
-    """
     if "자궁" in op_full_name:
         return "uterus"
     if "전립선" in op_full_name:
@@ -64,27 +61,18 @@ def play_audio():
     op_full_name = st.session_state.user_profile.get("surgery_type", "로봇보조 자궁절제술")
     op_prefix = get_normalized_op_prefix(op_full_name) 
     
-    # 💡 1. 현재 app.py가 실행되는 디렉토리를 기준으로 절대 경로를 구성합니다.
     current_dir = os.path.dirname(__file__)
     relative_path = os.path.join("static_audio", f"{op_prefix}_{section_key}.mp3")
-    absolute_filename = os.path.join(current_dir, relative_path) # <-- 절대 경로 생성
+    absolute_filename = os.path.join(current_dir, relative_path)
 
-    # 💡 2. 절대 경로를 사용하여 파일 존재 여부를 확인합니다.
     if os.path.exists(absolute_filename):
-        # 파일이 존재하면 바로 재생 상태로 설정합니다.
         st.session_state.audio_file_to_play = absolute_filename
-
     else:
-        # 파일이 존재하지 않는 경우, 사용자에게 해당 파일이 필요함을 알립니다.
         st.error(f"""
         **오디오 파일 없음 오류: 파일 누락**
         
-        이 애플리케이션은 TTS 파일을 생성하지 않고, 다음 경로에 MP3 파일이 **미리 존재**해야 합니다.
-        
-        * **요청 파일명:** `{op_prefix}_{section_key}.mp3`
-        * **찾으려고 시도한 절대 경로:** `{absolute_filename}`
-        
-        **해결책:** 프로젝트 폴더 내의 `static_audio` 폴더에 해당 파일을 업로드해주세요.
+        요청 파일명: `{op_prefix}_{section_key}.mp3`
+        경로: `{absolute_filename}`
         """)
         st.session_state.audio_file_to_play = None
 
@@ -108,60 +96,49 @@ def render_section_page(key):
         st.session_state.last_loaded_section_key = key
         st.session_state.last_loaded_surgery_type = op
         
-    # 💡 [START] 오디오 플레이어 위치를 상단으로 이동
     if st.session_state.audio_file_to_play and os.path.exists(st.session_state.audio_file_to_play):
         st.audio(st.session_state.audio_file_to_play, format='audio/mp3', start_time=0, autoplay=True)
         st.session_state.audio_file_to_play = None
-    # 💡 [END] 오디오 플레이어 위치 이동 완료
         
     explanation_html = st.session_state.get('current_gemini_explanation', '')
     
-    st.markdown(f'<h3 class="main-app-title">{section_title}</h3>', unsafe_allow_html=True)
+    # 💡 [변경 1] 제목과 버튼을 한 줄에 배치하기 위해 컬럼 분할 (비율 4:1)
+    col_title, col_btn = st.columns([4, 1], vertical_alignment="bottom") # vertical_alignment 옵션은 최신 Streamlit 버전 필요 (없으면 제거 가능)
 
+    with col_title:
+        st.markdown(f'<h3 class="main-app-title" style="margin-bottom:0;">{section_title}</h3>', unsafe_allow_html=True)
+    
+    with col_btn:
+        # 여기에 "설명 듣기" 버튼 배치
+        st.button("🔊 설명 듣기", on_click=play_audio, key="play_audio_button_top", use_container_width=True)
+
+    # 간격 조정을 위한 구분선 혹은 공백 (선택 사항)
+    st.write("") 
 
     col_img, col_content = st.columns([1, 2.5])
     
     with col_img:
-        # 💡 이미지 로딩 로직을 더 강력하게 수정하여 Streamlit 내부 오류도 잡아냅니다.
         relative_image_path = None
-        absolute_image_path = None # 절대 경로 변수 추가
-        
-        # 💡 app.py가 실행되는 기본 경로를 먼저 확보합니다.
+        absolute_image_path = None
         current_dir = os.path.dirname(__file__) 
         
         try:
-            # 1. 경로 맵에서 상대 경로를 가져옵니다. (KeyError 방지)
             relative_image_path = IMAGE_FILE_MAP[op][key]
-            
-            # 2. 현재 파일 위치를 기준으로 절대 경로를 구성합니다. (배포 환경에서 더 안전함)
             absolute_image_path = os.path.join(current_dir, relative_image_path)
-            
-            # 3. 절대 경로를 사용하여 st.image를 호출합니다.
             st.image(absolute_image_path, use_container_width=True)
             
         except KeyError:
-            st.warning(f"설정 파일(config.py)에 '{op}' 수술 또는 '{key}' 섹션에 대한 **이미지 경로가 정의되어 있지 않습니다.**")
-            st.markdown("<div style='height: 300px; border: 1px dashed #ccc; padding: 20px; text-align: center;'>이미지 준비 중 (경로 정의 필요)</div>", unsafe_allow_html=True)
-
+            st.warning(f"이미지 경로 미정의")
+            st.markdown("<div style='height: 300px; border: 1px dashed #ccc; padding: 20px; text-align: center;'>이미지 준비 중</div>", unsafe_allow_html=True)
         except Exception as e:
-            # FileNotFoundError나 MediaFileStorageError 등 모든 파일 관련 오류를 처리합니다.
-            error_message = f"**이미지 로딩 실패:** '{relative_image_path}' 경로의 파일을 찾을 수 없거나 열 수 없습니다."
-            st.error(f"{error_message}")
-            st.info(f"""
-            **디버깅 팁:**
-            1. 경로가 올바른지 (`{relative_image_path}`) 확인하세요.
-            2. 파일의 **대소문자**가 배포 환경에서 일치하는지 확인하세요. (리눅스 환경은 대소문자를 구분합니다)
-            3. 이미지 파일이 앱 폴더 내에 실제로 **업로드**되었는지 확인하세요.
-            
-            **시도된 절대 경로:** `{absolute_image_path}`
-            """)
+            st.error(f"이미지 로딩 실패")
             st.markdown("<div style='height: 300px; border: 1px dashed #ccc; padding: 20px; text-align: center;'>이미지 로딩 오류</div>", unsafe_allow_html=True)
-
 
     with col_content:
         st.markdown(explanation_html, unsafe_allow_html=True)
 
-        col1, col2, col3 = st.columns([1, 1, 1])
+        # 💡 [변경 2] 하단 버튼 영역에서 '설명 듣기' 제거하고 2개 컬럼으로 변경
+        col1, col2 = st.columns([1, 1]) # 컬럼 개수 2개로 수정
 
         with col1:
             current_index = SECTIONS_ORDER_KEYS.index(key)
@@ -174,11 +151,10 @@ def render_section_page(key):
                     st.session_state.profile_setup_completed = False
                     st.session_state.current_page = "profile_setup"
                     st.rerun()
+        
+        # 중간 컬럼(오디오 버튼) 제거됨
 
         with col2:
-            st.button("🔊 설명 듣기", on_click=play_audio, key="play_audio_button", use_container_width=True)
-        
-        with col3:
             current_index = SECTIONS_ORDER_KEYS.index(key)
             if current_index < len(SECTIONS_ORDER_KEYS) - 1:
                 next_key = SECTIONS_ORDER_KEYS[current_index + 1]
@@ -235,7 +211,7 @@ def main():
         st.session_state.last_loaded_section_key = None
         st.session_state.last_loaded_surgery_type = None
         st.session_state.current_gemini_explanation = None
-        st.session_state.audio_file_to_play = None # 오디오 상태 초기화
+        st.session_state.audio_file_to_play = None
 
         st.markdown("<h1 class='main-app-title'>로봇수술 동의서 설명 도우미 🤖</h1>", unsafe_allow_html=True)
         st.markdown("로봇수술 동의서의 내용을 이해하기 쉽게 설명해 드립니다.")
