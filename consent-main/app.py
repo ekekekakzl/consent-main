@@ -213,8 +213,8 @@ def main():
         st.session_state.current_gemini_explanation = None
         st.session_state.audio_file_to_play = None
 
-        st.markdown("<h1 class='main-app-title'>로봇수술 동의서 설명 도우미 🤖</h1>", unsafe_allow_html=True)
-        st.markdown("로봇수술 동의서의 내용을 이해하기 쉽게 설명해 드립니다.")
+        st.markdown("<h1 class='main-app-title'>로봇수술 설명 도우미 🤖</h1>", unsafe_allow_html=True)
+        st.markdown("로봇수술에 대해 이해하기 쉽게 설명해 드립니다.")
         st.subheader("나의 정보를 입력해주세요")
         render_profile_setup()
     else:
