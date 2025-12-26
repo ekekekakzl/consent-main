@@ -115,7 +115,7 @@ def render_section_page(key):
     # 간격 조정을 위한 구분선 혹은 공백 (선택 사항)
     st.write("") 
 
-    col_img, col_content = st.columns([1.5, 2.5])
+    col_img, col_content = st.columns([1.2, 1.7])
     
     with col_img:
         relative_image_path = None
