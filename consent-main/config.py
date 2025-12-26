@@ -19,14 +19,14 @@ SECTIONS_SIDEBAR_MAP = {
 IMAGE_FILE_MAP = {
     # 수술 종류 1: 로봇보조 자궁절제술
     "로봇보조 자궁절제술": {
-        "necessity": "images/gynecologic/necessity.jpg", 
+        "necessity": "images/gynecologic/necessity.png", 
         "method": "images/gynecologic/method.png",
         "considerations": "images/gynecologic/considerations.png",
         "side_effects": "images/gynecologic/side_effects.png",
     },
     # 수술 종류 2: 로봇보조 전립선절제술
     "로봇보조 전립선절제술": {
-        "necessity": "images/urology/necessity.jpg",
+        "necessity": "images/urology/necessity.png",
         "method": "images/urology/method.png",
         "considerations": "images/urology/considerations.png",
         "side_effects": "images/urology/side_effects.jpg",
@@ -158,6 +158,7 @@ SECTIONS_SIDEBAR_MAP = {
     "considerations": {"title": "수술은 어떻게 진행되나요?", "idx": 3},
     "side_effects": {"title": "알아두어야할 점", "idx": 4},
 }
+
 
 
 
