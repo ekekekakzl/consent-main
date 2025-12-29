@@ -16,7 +16,7 @@ def render_login_page():
         
         with img_col:
             if os.path.exists(img_path):
-                st.image(img_path, width=1000, use_container_width=False) # 이미지 크기 조정
+                st.image(img_path, width=700, use_container_width=False) # 이미지 크기 조정
             else:
                 st.warning(f"이미지 파일을 찾을 수 없습니다: {img_path}")
                 st.image("https://via.placeholder.com/100", width=100, use_container_width=False) # 대체 이미지
@@ -37,4 +37,5 @@ def render_login_page():
                 st.success("로그인 성공!")
                 st.rerun()
             else:
+
                 st.error("아이디 또는 비밀번호가 올바르지 않습니다.")
