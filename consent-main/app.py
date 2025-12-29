@@ -115,7 +115,7 @@ def render_section_page(key):
     # 간격 조정을 위한 구분선 혹은 공백 (선택 사항)
     st.write("") 
 
-    col_img, col_content = st.columns([1.2, 1.7])
+    col_img, col_content = st.columns([1, 1.3])
     
     with col_img:
         relative_image_path = None
@@ -164,7 +164,7 @@ def render_section_page(key):
 
 
 def render_final_chat_page():
-    st.markdown("<h1 class='final-chat-title'>모든 설명을 완료했습니다. 설명을 들어주셔서 감사합니다.</h1>", unsafe_allow_html=True)
+    st.markdown("<h1 class='final-chat-title'>모든 설명을 완료했습니다.<br>설명을 들어주셔서 감사합니다.</h1>", unsafe_allow_html=True)
     col1, col2 = st.columns(2)
 
     with col1:

@@ -7,16 +7,16 @@ def render_login_page():
     img_path = os.path.join(os.path.dirname(__file__), "../images/robot_doctor_logo.png") # 이미지 경로 수정
     
     # 메인 컬럼 비율 조정 (전체 폼의 중앙 위치는 크게 변경하지 않음)
-    col1, col2, col3 = st.columns([1, 1.5, 1])
+    col1, col2, col3 = st.columns([0.5, 1.5, 0.5])
     with col2: # 로그인 폼이 들어갈 중앙 컬럼
         # 이미지와 제목을 위한 하위 컬럼 생성
         # 왼쪽 여백을 위한 빈 컬럼을 추가하여 그림과 글씨를 왼쪽으로 밀어냅니다.
         # [왼쪽 빈 공간, 이미지 컬럼, 제목 컬럼]
-        empty_left_sub_col, img_col, title_col = st.columns([0.3, 0.5, 2]) # 비율 조정: 0.2만큼 왼쪽으로 이동
+        empty_left_sub_col, img_col, title_col = st.columns([0.1, 0.5, 0.7]) # 비율 조정: 0.2만큼 왼쪽으로 이동
         
         with img_col:
             if os.path.exists(img_path):
-                st.image(img_path, width=400, use_container_width=False) # 이미지 크기 조정
+                st.image(img_path, width=1000, use_container_width=False) # 이미지 크기 조정
             else:
                 st.warning(f"이미지 파일을 찾을 수 없습니다: {img_path}")
                 st.image("https://via.placeholder.com/100", width=100, use_container_width=False) # 대체 이미지
