@@ -12,7 +12,7 @@ def render_login_page():
         # 이미지와 제목을 위한 하위 컬럼 생성
         # 왼쪽 여백을 위한 빈 컬럼을 추가하여 그림과 글씨를 왼쪽으로 밀어냅니다.
         # [왼쪽 빈 공간, 이미지 컬럼, 제목 컬럼]
-        empty_left_sub_col, img_col, title_col = st.columns([0.1, 0.5, 0.8]) # 비율 조정: 0.2만큼 왼쪽으로 이동
+        empty_left_sub_col, img_col, title_col = st.columns([0.1, 0.5, 1) # 비율 조정: 0.2만큼 왼쪽으로 이동
         
         with img_col:
             if os.path.exists(img_path):
@@ -39,6 +39,7 @@ def render_login_page():
             else:
 
                 st.error("아이디 또는 비밀번호가 올바르지 않습니다.")
+
 
 
 
