@@ -71,7 +71,7 @@ HARDCODED_BASE_EXPLANATIONS = {
         |---|---|
         |상처가 작고 아픔이 적습니다.<br> <span style="color: #007bff;">**회복이 빠릅니다.**</span>|건강보험이 적용되지 않아 <br><span style="color: #dc143c;">**수술비가 비쌉니다.**</span>
         화면을 확대해서 볼 수 있고,<br>로봇 팔이 자유롭게 움직여 <br><span style="color: #007bff;">**정교한 수술**</span>이 가능합니다.|로봇세팅시간이 추가되어<br><span style="color: #dc143c;">**수술 시간이 더**</span> 걸립니다.
-        손떨림없이 미세한 작업이 가능해<br>주변 혈관이나 신경 <span style="color: #007bff;">**손상을 최소화**</span>할 수 있습니다.|수술 중 문제가 생기면 <br><span style="color: #dc143c;">**배를 열거나 복강경 수술로**</span> 바뀔 수 있습니다.|
+        손떨림 없이 <br>미세한 작업이 가능해<br>주변 혈관이나 신경 <span style="color: #007bff;">**손상을 최소화**</span>할 수 있습니다.|수술 중 문제가 생기면 <br><span style="color: #dc143c;">**배를 열거나 복강경 수술로**</span> 바뀔 수 있습니다.|
 
         """,
 
@@ -135,6 +135,7 @@ SECTIONS_SIDEBAR_MAP = {
     "considerations": {"title": "수술은 어떻게 진행되나요?", "idx": 3},
     "side_effects": {"title": "알아두어야할 점", "idx": 4},
 }
+
 
 
 
